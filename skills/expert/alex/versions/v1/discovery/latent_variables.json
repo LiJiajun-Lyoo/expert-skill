@@ -1,0 +1,119 @@
+[
+  {
+    "id": "lv_002",
+    "label": "降级触发阈值",
+    "source_type": "silent_topic",
+    "evidence_from_profile": "suspected_gaps[1]明确指出：'降级与熔断策略的具体触发条件和恢复机制'完全缺失。visible_knowledge中14条规则无一条涉及降级熔断阈值数字或触发条件。domain_context.key_challenges[0]提到'故障定位困难'，但未提及如何自动应对故障。",
+    "hypothesized_variable": {
+      "name": "degradation_trigger_threshold",
+      "description": "Alex在做'短期止血'决策时，必然有一套隐性的降级触发标准——延迟超过多少ms触发降级？错误率超过多少%触发熔断？降级到什么程度（只读/部分功能/完全降级）？这些阈值他实战中一定在用，但从未明确写出。",
+      "why_latent": "降级阈值通常与具体系统的SLA绑定，Alex可能认为这是'case by case'而不值得抽象，或者他认为这些阈值是领域常识。但实际工作中，不同architect的降级触发选择差异巨大，这恰恰是最有价值的隐性知识。"
+    },
+    "testability": "high",
+    "priority": 10
+  },
+  {
+    "id": "lv_003",
+    "label": "CAP取舍权重",
+    "source_type": "silent_topic",
+    "evidence_from_profile": "suspected_gaps[2]：'数据一致性保障方案——在分区容忍性、可用性、一致性之间的具体取舍'完全缺失。visible_knowledge中14条规则无一条涉及CAP、最终一致性、分布式事务、幂等。domain_context.methodology_clashes[2]提到有状态服务部署方式分歧，但未涉及数据一致性层面。",
+    "hypothesized_variable": {
+      "name": "cap_tradeoff_weights",
+      "description": "Alex在分布式存储设计决策中，对一致性、可用性、分区容忍性有隐性的权重分配。例如在网络分区场景下，他优先保可用性还是一致性？在金融交易场景是否切换权重？这个变量直接影响数据库选型、事务方案、消息投递语义的选择。",
+      "why_latent": "CAP取舍通常嵌在具体方案选择中，不被单独讨论。Alex可能从未被问过'你的CAP排序是什么'，但他的每个架构决策都携带这一排序的痕迹。对于分布式存储领域的architect，这是最重要的隐性变量之一。"
+    },
+    "testability": "medium",
+    "priority": 10
+  },
+  {
+    "id": "lv_001",
+    "label": "止血妥协边界",
+    "source_type": "comparison_gap",
+    "evidence_from_profile": "known_decisions[0]中Alex接受'短期扩容止血+长期治理'双层方案（允许临时妥协），但known_decisions[1]中他直接拒绝方案通过（零妥协）。两个决策都涉及'不完美的现状'，但Alex在case1中给了中间路线，在case2中不给。画像未解释两种态度的切换条件。",
+    "hypothesized_variable": {
+      "name": "stopgap_compromise_boundary",
+      "description": "Alex在面对不完美方案时，有一条隐性边界决定他何时接受'先止血再优化'的双层方案，何时坚持'必须一步到位'。该变量可能受故障紧迫性、影响面大小、回滚成本的综合影响。",
+      "why_latent": "专家自己总结时强调的是'短期止血+长期治理'，但从未说明这一策略的失效条件——什么情况下不应该止血而是直接根治。这个边界他可能在实战中稳定使用，但未命名。"
+    },
+    "testability": "high",
+    "priority": 9
+  },
+  {
+    "id": "lv_004",
+    "label": "3跳规则生效域",
+    "source_type": "rule_boundary",
+    "evidence_from_profile": "visible_knowledge[3]：'任何核心链路超过3个微服务同步调用必须重新审视'。但这条规则的关键边界条件均未定义——什么算'核心链路'（影响范围？QPS？）？'重新审视'的流程是什么？什么情况下即使超过3跳也可以接受？哪些场景下3跳已经太多了？",
+    "hypothesized_variable": {
+      "name": "three_hop_rule_applicability",
+      "description": "Alex的3跳规则存在多个未阐明的边界条件：哪些链路算核心（按收入影响？按用户面？按SLA？）、什么场景下2跳就应该审视（高延迟敏感？金融交易？）、什么场景下4跳也可接受（后台批处理？异步链路？）。这些边界是他实战判断的核心。",
+      "why_latent": "规则本身已经足够简洁有力，Alex可能认为边界条件'因场景而异'不值得抽象。但正是这些边界条件决定了一个架构师是机械套用3跳规则，还是真正理解何时收紧何时放宽。"
+    },
+    "testability": "high",
+    "priority": 9
+  },
+  {
+    "id": "lv_006",
+    "label": "选型保守度",
+    "source_type": "domain_disagreement",
+    "evidence_from_profile": "domain_context.methodology_clashes[3]明确记录了'技术选型的最佳实践 vs 团队掌控度'分歧。visible_knowledge[12]显示选型维度中'稳定性>可观测性>团队掌控度'，且visible_knowledge[5]坚持'团队能理解'是选型第一门槛。但画像未解释当'最佳实践方案有更强的社区和生态'vs'团队对次优方案更熟悉'时如何权衡。",
+    "hypothesized_variable": {
+      "name": "tech_selection_conservatism",
+      "description": "Alex在技术选型时有一个隐性的保守度系数——他愿意为了团队掌控度牺牲多少技术先进性。例如：社区主流方案领先团队熟悉方案2个版本时，他选谁？团队有人才储备但无生产经验时，算'团队能理解'吗？这个系数在他每次选型决策时都被调用。",
+      "why_latent": "这个变量被包装在'团队能理解'这个看起来客观的门槛里，但实际上'能理解'的定义本身就是主观的、有梯度的。Alex可能从未被追问过这个梯度的具体刻度。"
+    },
+    "testability": "high",
+    "priority": 8
+  },
+  {
+    "id": "lv_005",
+    "label": "容量评估公式",
+    "source_type": "silent_topic",
+    "evidence_from_profile": "suspected_gaps[0]：'具体的容量评估方法和量化模型'完全缺失。虽然材料多次提到'容量评估'（材料§6列出10个擅长问题中包含'后端系统容量评估'），但visible_knowledge 14条规则无一条涉及容量规划公式、安全系数、峰值模型。",
+    "hypothesized_variable": {
+      "name": "capacity_estimation_model",
+      "description": "Alex在做容量评估时，应该有一套隐性的估算公式或心智模型——用什么指标预测容量需求（峰值QPS？日均增长？大促倍数？）、安全系数设定多少（1.5x？2x？3x？）、什么信号触发扩容评估（连接池使用率？CPU？RT恶化？）。这套模型他每天都在用，但从未写出来。",
+      "why_latent": "容量评估通常被视为'基本技能'而不被讨论，但不同级别架构师的评估精度差异巨大。Alex可能认为这是常识，但实际上他的安全系数选择、触发条件优先级都是多年踩坑积累的隐性判断。"
+    },
+    "testability": "medium",
+    "priority": 8
+  },
+  {
+    "id": "lv_007",
+    "label": "灰度放量节奏",
+    "source_type": "silent_topic",
+    "evidence_from_profile": "suspected_gaps[6]：'迁移与重构的风险管理——灰度策略、回滚方案、兼容性保障'完全缺失。虽然材料§6提到'架构扩展性与稳定性改造'是擅长领域，但visible_knowledge和known_decisions中无任何灰度比例、观察窗口、回滚触发条件的记录。",
+    "hypothesized_variable": {
+      "name": "gradual_rollout_rhythm",
+      "description": "Alex在做架构变更和迁移时，必然有一套默认的灰度节奏——第一批放多少流量（1%？5%？10%？）、每步观察多久（10分钟？1小时？1天？）、什么指标异常触发回滚（错误率？延迟？业务指标？）、什么时候可以全量。这套节奏是他的风险控制核心机制。",
+      "why_latent": "灰度策略高度依赖系统特性，Alex可能认为'这要根据具体情况定'。但一个经验丰富的architect一定有默认起点和调整规则，这些默认值才是真正的隐性知识。"
+    },
+    "testability": "high",
+    "priority": 7
+  },
+  {
+    "id": "lv_008",
+    "label": "瓶颈确认标准",
+    "source_type": "rule_boundary",
+    "evidence_from_profile": "visible_knowledge[10]：'先不要急着扩资源，要先确认瓶颈到底在哪一层'。这条规则未说明'确认'的具体标准——什么信号算确认了瓶颈在连接池而不是数据库？需要多少分钟的指标数据？需要排除哪些替代假说？known_decisions[0]中他用了6项指标来确认，但未说明这是一个标准流程还是case specific。",
+    "hypothesized_variable": {
+      "name": "bottleneck_confirmation_criteria",
+      "description": "Alex有一个隐性的瓶颈确认checklist——在宣布'瓶颈在X层'之前，他需要看到哪些证据组合（如：连接池使用率>90%且DB慢查询<5且GC正常→瓶颈在连接池）。这个checklist是他在known_decisions[0]中快速锁定根因而非盲目扩容的核心能力。",
+      "why_latent": "Alex表达了'先确认瓶颈'的原则，但确认标准本身需要跨指标的关联判断，难以用单条规则表达。这种多维指标的交叉验证逻辑是他真正的核心竞争力，也是'说不清但实际在用'的知识。"
+    },
+    "testability": "medium",
+    "priority": 7
+  },
+  {
+    "id": "lv_009",
+    "label": "数据一致性分级",
+    "source_type": "silent_topic",
+    "evidence_from_profile": "suspected_gaps[2]和suspected_gaps[4]共同指向一个缺口——Alex对数据可靠性有分层标准但未说明。suspected_gaps[2]指出CAP取舍未讨论；suspected_gaps[4]指出多机房架构未讨论。两者叠加暗示：Alex对'不同场景需要不同的一致性级别'有隐性分级，但从未明确。",
+    "hypothesized_variable": {
+      "name": "data_consistency_tiering",
+      "description": "Alex对不同业务场景的数据一致性要求可能有隐性分级——哪些数据可以容忍最终一致（如用户头像）、哪些需要强一致（如账户余额）、哪些需要因果一致（如订单状态）。这个分级直接影响存储选型、事务策略、跨机房同步方案。",
+      "why_latent": "一致性分级通常是设计评审中的隐含前提，不会被显式讨论，因为它依赖于对业务语义的深度理解。Alex可能认为'这是业务常识'，但实际上不同architect对同一业务的一致性分级可能完全不同。"
+    },
+    "testability": "medium",
+    "priority": 6
+  }
+]

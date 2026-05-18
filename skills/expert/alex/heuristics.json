@@ -1,0 +1,267 @@
+{
+  "expert": "Alex",
+  "expertise_type": "architect",
+  "knowledge_format": "design_principles",
+  "execution_model": "evaluative",
+  "sections": [
+    "设计原则",
+    "技术选型矩阵",
+    "反模式与红线",
+    "架构决策记录 (ADR)",
+    "经验教训"
+  ],
+  "rules": [],
+  "latent_variables": [
+    {
+      "type": "变量",
+      "content": "灰度起始比例与系统重要性呈反向对数关系：内部系统10%起、核心交易1%起",
+      "confidence": "high",
+      "evidence": {
+        "triplet_id": "tg_001",
+        "layer": "B",
+        "expert_quote": "核心差异在两点：一是起始比例从10%降到1%，二是观察窗口从15分钟延长到30分钟",
+        "confidence_reason": "专家在B层主动对比A/B，使用精确数字，完全显性化"
+      }
+    },
+    {
+      "type": "变量",
+      "content": "降级触发阈值与链路等级负相关：核心入口2分钟观察窗口、非核心5分钟",
+      "confidence": "high",
+      "evidence": {
+        "triplet_id": "tg_002",
+        "layer": "B",
+        "expert_quote": "针对核心入口服务，我的标准是：延迟超过正常值的5倍+错误率>0，观察窗口不超过2分钟",
+        "confidence_reason": "B层给出了精确的数字标准且有推导逻辑（120个超时周期）"
+      }
+    },
+    {
+      "type": "变量",
+      "content": "止血妥协边界由三个维度共同决定：服务重要性、团队能力、根治方案的确定性",
+      "confidence": "high",
+      "evidence": {
+        "triplet_id": "tg_003",
+        "layer": "C",
+        "expert_quote": "团队能力不足时我对核心服务必须根治的坚持松动了——但不是放弃，而是推迟。关键是必须有一个明确的deadline和过渡期的加固措施",
+        "confidence_reason": "专家在C层明确命名了自己的妥协逻辑和底线条件"
+      }
+    },
+    {
+      "type": "变量",
+      "content": "3跳规则对新建系统与已有系统的标准不同：新设计3跳是硬线，已有系统可放宽到5跳但需重构计划",
+      "confidence": "high",
+      "evidence": {
+        "triplet_id": "tg_004",
+        "layer": "C",
+        "expert_quote": "已有系统加需求和全新设计确实标准不同——已有系统有迁移成本，你不能为了架构纯洁性推翻一切",
+        "confidence_reason": "专家明确区分了两种场景的标准差异"
+      }
+    },
+    {
+      "type": "变量",
+      "content": "核心链路与非核心链路的跳数容忍差异根因：核心链路故障直接等于公司损失",
+      "confidence": "high",
+      "evidence": {
+        "triplet_id": "tg_004",
+        "layer": "B",
+        "expert_quote": "核心和非核心的本质差别是：核心链路的故障直接等于公司损失，所以简洁性不仅是技术追求，是风险管理",
+        "confidence_reason": "专家能用风险管理的框架解释自己的技术原则"
+      }
+    },
+    {
+      "type": "变量",
+      "content": "团队掌控度门槛量化：核心存储需≥3人×1年+生产运维经验；<3人仅测试环境不算掌控",
+      "confidence": "high",
+      "evidence": {
+        "triplet_id": "tg_005",
+        "layer": "B",
+        "expert_quote": "至少3人以上有1年以上的生产运维经验是我对核心存储组件的最低团队门槛",
+        "confidence_reason": "专家在追问中给出了精确量化的团队门槛数字"
+      }
+    },
+    {
+      "type": "变量",
+      "content": "CAP取舍的分层模型：同机房微秒级→同城毫秒级→同区域10ms级→跨区域秒级→跨洲分钟级。延迟每增一个数量级，一致性弱化一级",
+      "confidence": "high",
+      "evidence": {
+        "triplet_id": "tg_006",
+        "layer": "C",
+        "expert_quote": "分层一致性的地理维度：同机房微秒级强一致→同城毫秒级→同区域10ms级→跨区域秒级最终一致→跨洲分钟级最终一致",
+        "confidence_reason": "专家给出了完整的五层一致性模型，这是P2/P3中完全未出现的核心隐性知识"
+      }
+    },
+    {
+      "type": "变量",
+      "content": "瓶颈确认的最小必要指标集：连接池使用率（最优先恢复）、慢查询数量、GC停顿时间",
+      "confidence": "high",
+      "evidence": {
+        "triplet_id": "tg_007",
+        "layer": "B",
+        "expert_quote": "如果只恢复一个监控，我恢复连接池监控。原因：从症状和已有信息来看，连接池争抢是最可能的原因",
+        "confidence_reason": "专家明确排出了监控恢复的优先级"
+      }
+    },
+    {
+      "type": "变量",
+      "content": "各指标的隐性阈值：连接池90%+关注、慢查询10/min关注/50+严重、错误率>0立即关注",
+      "confidence": "medium",
+      "evidence": {
+        "triplet_id": "tg_007",
+        "layer": "A",
+        "expert_quote": "连接池85%是正常的（通常90%以上我才关注），慢查询3个/分钟对500万笔/天的交易量来说很低",
+        "confidence_reason": "专家给出了具体阈值但分散在多处回答中"
+      }
+    },
+    {
+      "type": "变量",
+      "content": "安全系数的系统等级对照表：内部1.2x、业务1.3x、核心交易1.5x、支付/资金1.8x",
+      "confidence": "high",
+      "evidence": {
+        "triplet_id": "tg_008",
+        "layer": "B",
+        "expert_quote": "不同系统等级的安全系数隐性对照表：内部系统1.2x、业务系统1.3x、核心交易1.5x、支付/资金1.8x。差距来自不可用的后果",
+        "confidence_reason": "专家给出了完整的四档安全系数对照表，高度结构化"
+      }
+    },
+    {
+      "type": "变量",
+      "content": "四级数据一致性分级模型：一级（强一致→资金/订单/库存）、二级（秒级→昵称/设置）、三级（分钟级→头像/签名）、四级（小时级→统计/推荐）",
+      "confidence": "high",
+      "evidence": {
+        "triplet_id": "tg_009",
+        "layer": "A",
+        "expert_quote": "数据分级的粗略标准：第一级强一致——涉及资金、订单状态、库存扣减；第二级秒级一致——用户昵称、用户设置；第三级分钟级一致——头像、个性签名；第四级小时级一致——统计报表、推荐模型",
+        "confidence_reason": "专家在A层主动给出了完整的四级分类体系"
+      }
+    }
+  ],
+  "priority_rules": [
+    {
+      "rule_pair": [
+        "系统稳定性",
+        "大促GMV最大化"
+      ],
+      "winner": "系统稳定性",
+      "modulator": "错误率是否≥1%",
+      "description": "错误率<1%时用分级降级保GMV（稳定性+GMV兼顾），≥1%时全量限流（稳定性绝对优先）"
+    },
+    {
+      "rule_pair": [
+        "架构简洁性（3跳规则）",
+        "监管合规"
+      ],
+      "winner": "监管合规",
+      "modulator": "是否有监管背景",
+      "description": "纯业务需求不接受超3跳，监管需求可放宽但需重构deadline"
+    },
+    {
+      "rule_pair": [
+        "团队掌控度",
+        "技术先进性"
+      ],
+      "winner": "团队掌控度",
+      "modulator": "系统风险等级",
+      "description": "非核心系统允许先进性>掌控度，核心存储掌控度绝对优先"
+    },
+    {
+      "rule_pair": [
+        "全局强一致性",
+        "全球部署物理可行性"
+      ],
+      "winner": "物理可行性",
+      "modulator": "地理距离（延迟）",
+      "description": "延迟每增一个量级一致性弱化一级，但每层有冲突检测兜底"
+    },
+    {
+      "rule_pair": [
+        "安全冗余",
+        "预算成本"
+      ],
+      "winner": "安全冗余",
+      "modulator": "扩容响应速度",
+      "description": "安全系数与扩容速度互补——弹性部署快→可降低预扩量但底线不破"
+    },
+    {
+      "rule_pair": [
+        "等待信息完备",
+        "紧急决策窗口"
+      ],
+      "winner": "低风险可逆动作",
+      "modulator": "动作的可逆性",
+      "description": "可逆动作可以不等待信息直接执行，高风险变更仍需信息完备"
+    },
+    {
+      "rule_pair": [
+        "根治方案",
+        "团队能力约束"
+      ],
+      "winner": "根治方案（推迟版）",
+      "modulator": "根治方案的deadline确定性",
+      "description": "能力不足推迟根治而非放弃，但必须有明确deadline和加固措施"
+    }
+  ],
+  "boundary_conditions": [
+    {
+      "triplet_id": "tg_001",
+      "boundary": "灰度安全基线三要素",
+      "applicable_domain": "任何有deadline压力的核心系统升级",
+      "failure_domain": "如果连1%探测步骤都无法执行（如非灰度兼容的系统），此框架失效",
+      "reversal_condition": "系统支持快速全量回滚且回滚时间<1分钟时，可适当放宽观察窗口"
+    },
+    {
+      "triplet_id": "tg_002",
+      "boundary": "大促降级分级线（错误率1%）",
+      "applicable_domain": "大促/活动等高流量场景下的核心链路",
+      "failure_domain": "如果降级本身的技术实现有缺陷（如降级后仍调用故障服务），分级降级无效",
+      "reversal_condition": "当系统已处于雪崩边缘（级联超时已开始），应立即全量限流不等待1%线"
+    },
+    {
+      "triplet_id": "tg_003",
+      "boundary": "核心服务止血妥协时间窗口（1-3周）",
+      "applicable_domain": "容量类瓶颈（连接池、线程池）的临时扩容方案",
+      "failure_domain": "数据一致性类问题（如数据错乱、丢失）不能使用止血妥协框架",
+      "reversal_condition": "如果临时方案本身引入了新风险（如扩容导致数据库连接数超限），应撤回临时方案"
+    },
+    {
+      "triplet_id": "tg_004",
+      "boundary": "3跳规则的例外优先级清单",
+      "applicable_domain": "微服务调用链路设计评审",
+      "failure_domain": "当系统处于生死存亡级别故障时，架构评审流程可能被跳过（应事后复议）",
+      "reversal_condition": "合规要求取消或存量系统已重构完成时，恢复3跳标准"
+    },
+    {
+      "triplet_id": "tg_005",
+      "boundary": "核心存储团队掌控度门槛（3人×1年+）",
+      "applicable_domain": "核心交易数据存储的新技术引入",
+      "failure_domain": "如果团队有强烈意愿但人数不足，可以通过外包或厂商支持弥补（需评估外包可靠性）",
+      "reversal_condition": "如果主流技术栈已全面迁移到新技术（如公司统一TiDB），掌控度门槛可放宽为'有厂商SLA保障'"
+    },
+    {
+      "triplet_id": "tg_006",
+      "boundary": "五层地理一致性模型",
+      "applicable_domain": "跨机房/跨区域/跨洲的数据存储架构设计",
+      "failure_domain": "如果合规明确要求全局强一致且没有技术豁免空间，该模型不适用（需上升为业务决策）",
+      "reversal_condition": "当新一代网络技术使跨洲延迟降到10ms以内时，可提升跨洲一致性级别"
+    },
+    {
+      "triplet_id": "tg_007",
+      "boundary": "信息不足时动作可逆性分级",
+      "applicable_domain": "所有紧急故障排查场景",
+      "failure_domain": "如果最可能的根因是代码Bug而非资源问题，限流等可逆动作可能无效且浪费时间",
+      "reversal_condition": "当可逆动作在2分钟内无效果时，应切换为信息收集优先策略"
+    },
+    {
+      "triplet_id": "tg_008",
+      "boundary": "安全系数与扩容速度互补公式",
+      "applicable_domain": "有弹性扩容能力的系统",
+      "failure_domain": "如果底层依赖的物理资源（如机架、IP地址）扩容链路长于弹性扩容时间，该互补不成立",
+      "reversal_condition": "扩容速度从3天恶化到3周时，安全系数应回升到1.5x"
+    },
+    {
+      "triplet_id": "tg_009",
+      "boundary": "余额数据的全球分层一致性",
+      "applicable_domain": "涉及资金的全球部署系统",
+      "failure_domain": "如果发生跨区域转账（用户在A区域向B区域转账），分层模型需要额外的事务协调机制",
+      "reversal_condition": "如果监管要求所有余额变更必须在单一法律实体下完成，则需集中化部署拒绝全球分布"
+    }
+  ]
+}

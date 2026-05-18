@@ -1,0 +1,46 @@
+{
+  "manifest_version": "1",
+  "id": "expert.troubleshooter.demo-troubleshooter",
+  "kind": "expert-skill",
+  "expertise_type": "troubleshooter",
+  "preset": "expert.troubleshooter.v1",
+  "display_name": "frigga",
+  "entrypoints": {
+    "default": "SKILL.md"
+  },
+  "artifacts": [
+    "SKILL.md",
+    "expertise.md",
+    "knowledge_graph.md",
+    "heuristics.json",
+    "meta.json",
+    "manifest.json",
+    "latent_report.md",
+    "interview_transcript.md"
+  ],
+  "capabilities": [
+    "expertise",
+    "discovery"
+  ],
+  "engine": {
+    "name": "expert-skill",
+    "kind": "expert-skill",
+    "expertise_type": "troubleshooter",
+    "preset": "expert.troubleshooter.v1",
+    "prompt_bundle": {
+      "preset": "expert.troubleshooter.v1",
+      "intake": "prompts/expertise/troubleshooter/intake.md",
+      "analyzer": "prompts/expertise/troubleshooter/analyzer.md",
+      "builder": "prompts/expertise/troubleshooter/builder.md"
+    }
+  },
+  "install": {
+    "compatible_runtimes": [
+      "claude-code",
+      "openclaw",
+      "hermes",
+      "codex"
+    ],
+    "min_schema_version": "1"
+  }
+}

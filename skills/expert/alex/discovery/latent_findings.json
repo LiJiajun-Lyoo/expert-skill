@@ -1,0 +1,299 @@
+[
+  {
+    "type": "变量",
+    "content": "灰度起始比例与系统重要性呈反向对数关系：内部系统10%起、核心交易1%起",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_001",
+      "layer": "B",
+      "expert_quote": "核心差异在两点：一是起始比例从10%降到1%，二是观察窗口从15分钟延长到30分钟",
+      "confidence_reason": "专家在B层主动对比A/B，使用精确数字，完全显性化"
+    }
+  },
+  {
+    "type": "边界条件",
+    "content": "灰度安全底线三要素：最小探测步骤（1%）、错误率零容忍、大促前完整高峰观察窗口",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_001",
+      "layer": "C",
+      "expert_quote": "死也不动的底线有三条：必须有一个最小的1%探测步骤、任何错误率>0必须停止、大促前必须有一个完整的高峰观察窗口",
+      "confidence_reason": "专家使用了'死也不动'等极端词汇，信号强度极高"
+    }
+  },
+  {
+    "type": "优先级",
+    "content": "时间压力下，安全基线优先级高于按时上线。宁可旧版本扛大促也不冒险",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_001",
+      "layer": "C",
+      "expert_quote": "如果周五早上50%时发现问题，果断回滚，用旧版本扛大促——旧版本可能慢但不至于崩，比新版本挂掉好",
+      "confidence_reason": "C层冲突下选择了安全优先，且给出了具体替代方案"
+    }
+  },
+  {
+    "type": "变量",
+    "content": "降级触发阈值与链路等级负相关：核心入口2分钟观察窗口、非核心5分钟",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_002",
+      "layer": "B",
+      "expert_quote": "针对核心入口服务，我的标准是：延迟超过正常值的5倍+错误率>0，观察窗口不超过2分钟",
+      "confidence_reason": "B层给出了精确的数字标准且有推导逻辑（120个超时周期）"
+    }
+  },
+  {
+    "type": "边界条件",
+    "content": "大促期间降级决策有分级机制：错误率<1%用分级降级保GMV，≥1%全量限流",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_002",
+      "layer": "C",
+      "expert_quote": "如果错误率上了1%，不管什么大促，必须全量限流——因为这时继续撑下去可能整个系统崩溃",
+      "confidence_reason": "专家给出了明确的数字分界线（1%错误率），信号清晰"
+    }
+  },
+  {
+    "type": "优先级",
+    "content": "系统崩溃 > GMV损失：'GMV损失是暂时的、可计算的，系统崩溃后恢复需要数小时且不可预测'",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_002",
+      "layer": "C",
+      "expert_quote": "GMV损失和系统崩溃之间，系统崩溃更严重",
+      "confidence_reason": "跨类型的损失比较框架显性化，专家能给出清晰的比较逻辑"
+    }
+  },
+  {
+    "type": "边界条件",
+    "content": "核心服务止血妥协的时间窗口：内部系统2周、核心交易1周、团队能力不足时3周（加固条件下）",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_003",
+      "layer": "B",
+      "expert_quote": "支付服务和推荐服务的本质区别不是临时方案能不能用，而是临时方案的容忍时间窗口差距——推荐2周，支付1周",
+      "confidence_reason": "三个场景的时间窗口精确且逻辑一致，形成了可量化的对照表"
+    }
+  },
+  {
+    "type": "变量",
+    "content": "止血妥协边界由三个维度共同决定：服务重要性、团队能力、根治方案的确定性",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_003",
+      "layer": "C",
+      "expert_quote": "团队能力不足时我对核心服务必须根治的坚持松动了——但不是放弃，而是推迟。关键是必须有一个明确的deadline和过渡期的加固措施",
+      "confidence_reason": "专家在C层明确命名了自己的妥协逻辑和底线条件"
+    }
+  },
+  {
+    "type": "优先级",
+    "content": "根治的质量 > 根治的速度：'让不熟悉的人做B，引入的Bug可能比连接池打满更严重'",
+    "confidence": "medium",
+    "evidence": {
+      "triplet_id": "tg_003",
+      "layer": "C",
+      "expert_quote": "风险不是方案本身的质量，而是改造过程中引入的Bug可能比连接池打满更严重",
+      "confidence_reason": "专家自发命名了一种新的风险维度（改造风险），置信度受限于单次表达"
+    }
+  },
+  {
+    "type": "边界条件",
+    "content": "3跳规则的例外优先级：监管合规 > 存量迁移成本 > 业务紧急需求 > 技术债务",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_004",
+      "layer": "C",
+      "expert_quote": "例外清单的优先级：监管合规 > 存量迁移成本 > 业务紧急需求 > 技术债务清理。监管合规是必须接受的例外",
+      "confidence_reason": "专家在C层主动给出了完整的例外优先级排序"
+    }
+  },
+  {
+    "type": "变量",
+    "content": "3跳规则对新建系统与已有系统的标准不同：新设计3跳是硬线，已有系统可放宽到5跳但需重构计划",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_004",
+      "layer": "C",
+      "expert_quote": "已有系统加需求和全新设计确实标准不同——已有系统有迁移成本，你不能为了架构纯洁性推翻一切",
+      "confidence_reason": "专家明确区分了两种场景的标准差异"
+    }
+  },
+  {
+    "type": "变量",
+    "content": "核心链路与非核心链路的跳数容忍差异根因：核心链路故障直接等于公司损失",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_004",
+      "layer": "B",
+      "expert_quote": "核心和非核心的本质差别是：核心链路的故障直接等于公司损失，所以简洁性不仅是技术追求，是风险管理",
+      "confidence_reason": "专家能用风险管理的框架解释自己的技术原则"
+    }
+  },
+  {
+    "type": "变量",
+    "content": "团队掌控度门槛量化：核心存储需≥3人×1年+生产运维经验；<3人仅测试环境不算掌控",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_005",
+      "layer": "B",
+      "expert_quote": "至少3人以上有1年以上的生产运维经验是我对核心存储组件的最低团队门槛",
+      "confidence_reason": "专家在追问中给出了精确量化的团队门槛数字"
+    }
+  },
+  {
+    "type": "优先级",
+    "content": "核心存储选型：生产经验 > 技术先进性。技术创新可在非核心系统完成学习积累",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_005",
+      "layer": "A",
+      "expert_quote": "风险低的时候我愿意让团队尝试新技术，这是技术演进的方式",
+      "confidence_reason": "A/B/C跨场景选择一致，技术演进路径清晰"
+    }
+  },
+  {
+    "type": "边界条件",
+    "content": "POC验证路径：测试POC→影子流量验证→非核心灰度写入→全量上线。POC算第一步，不可跳过中间步",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_005",
+      "layer": "C",
+      "expert_quote": "POC到生产经验的转化路径：测试环境POC → 生产影子流量验证 → 灰度上线非核心写入 → 全量上线",
+      "confidence_reason": "专家在C层给出了完整的POC→生产路径，这是被C层冲突逼出的隐性知识"
+    }
+  },
+  {
+    "type": "变量",
+    "content": "CAP取舍的分层模型：同机房微秒级→同城毫秒级→同区域10ms级→跨区域秒级→跨洲分钟级。延迟每增一个数量级，一致性弱化一级",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_006",
+      "layer": "C",
+      "expert_quote": "分层一致性的地理维度：同机房微秒级强一致→同城毫秒级→同区域10ms级→跨区域秒级最终一致→跨洲分钟级最终一致",
+      "confidence_reason": "专家给出了完整的五层一致性模型，这是P2/P3中完全未出现的核心隐性知识"
+    }
+  },
+  {
+    "type": "边界条件",
+    "content": "一致性妥协不可跨越的底线：涉及资金的数据在同区域内必须强一致，跨区域可最终一致但必须有冲突检测+补偿日志",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_006",
+      "layer": "C",
+      "expert_quote": "同机房内必须强一致（物理可行），跨机房接受最终一致（物理不可行）",
+      "confidence_reason": "区分了物理可行和不可行的边界，有清晰的判据"
+    }
+  },
+  {
+    "type": "优先级",
+    "content": "交易场景：一致性 > 可用性 > 性能。但全球部署下本地一致性 > 全局一致性",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_006",
+      "layer": "B",
+      "expert_quote": "交易场景必须是CP系统——一致性>可用性。没有折中——最终一致和交易流水在同一个句子里是不成立的",
+      "confidence_reason": "A/B/C三层的取舍逻辑一致且层层递进"
+    }
+  },
+  {
+    "type": "变量",
+    "content": "瓶颈确认的最小必要指标集：连接池使用率（最优先恢复）、慢查询数量、GC停顿时间",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_007",
+      "layer": "B",
+      "expert_quote": "如果只恢复一个监控，我恢复连接池监控。原因：从症状和已有信息来看，连接池争抢是最可能的原因",
+      "confidence_reason": "专家明确排出了监控恢复的优先级"
+    }
+  },
+  {
+    "type": "边界条件",
+    "content": "信息不足时的动作分级：低风险可逆动作（限流、摘流量）可以不等证据；高风险变更（改代码、改配置）必须等证据",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_007",
+      "layer": "C",
+      "expert_quote": "原则修正为：没指标时不做高风险变更，但可以做低风险、可逆的缓解动作来争取时间",
+      "confidence_reason": "这是被高压场景逼出的隐性原则修正，对原已有原则做了重要约束扩展"
+    }
+  },
+  {
+    "type": "变量",
+    "content": "各指标的隐性阈值：连接池90%+关注、慢查询10/min关注/50+严重、错误率>0立即关注",
+    "confidence": "medium",
+    "evidence": {
+      "triplet_id": "tg_007",
+      "layer": "A",
+      "expert_quote": "连接池85%是正常的（通常90%以上我才关注），慢查询3个/分钟对500万笔/天的交易量来说很低",
+      "confidence_reason": "专家给出了具体阈值但分散在多处回答中"
+    }
+  },
+  {
+    "type": "变量",
+    "content": "安全系数的系统等级对照表：内部1.2x、业务1.3x、核心交易1.5x、支付/资金1.8x",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_008",
+      "layer": "B",
+      "expert_quote": "不同系统等级的安全系数隐性对照表：内部系统1.2x、业务系统1.3x、核心交易1.5x、支付/资金1.8x。差距来自不可用的后果",
+      "confidence_reason": "专家给出了完整的四档安全系数对照表，高度结构化"
+    }
+  },
+  {
+    "type": "边界条件",
+    "content": "安全系数与扩容速度互补：扩容越快（弹性部署3天），预扩安全系数可越低（1.5x→1.3x）",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_008",
+      "layer": "C",
+      "expert_quote": "安全系数和扩容速度是互补的：扩容越快，预扩的安全系数可以越低。这不能算对预算的妥协，而是用运维能力置换容量成本",
+      "confidence_reason": "专家在C层冲突下提出了一个新框架（速度置换容量），这是全新的隐性知识"
+    }
+  },
+  {
+    "type": "优先级",
+    "content": "扩容触发线设置逻辑：核心系统70%触发（给2-3周扩容窗口），非核心可等到85%",
+    "confidence": "medium",
+    "evidence": {
+      "triplet_id": "tg_008",
+      "layer": "B",
+      "expert_quote": "触发线设在70%是因为扩容从触发到完成可能需要2-3周，如果等到85%再触发，可能在扩容完成前容量就满了",
+      "confidence_reason": "触发线逻辑清晰但缺乏其他系统的触发线对比数据"
+    }
+  },
+  {
+    "type": "变量",
+    "content": "四级数据一致性分级模型：一级（强一致→资金/订单/库存）、二级（秒级→昵称/设置）、三级（分钟级→头像/签名）、四级（小时级→统计/推荐）",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_009",
+      "layer": "A",
+      "expert_quote": "数据分级的粗略标准：第一级强一致——涉及资金、订单状态、库存扣减；第二级秒级一致——用户昵称、用户设置；第三级分钟级一致——头像、个性签名；第四级小时级一致——统计报表、推荐模型",
+      "confidence_reason": "专家在A层主动给出了完整的四级分类体系"
+    }
+  },
+  {
+    "type": "边界条件",
+    "content": "余额全场景强一致在物理可行域内（同机房/同区域），但当扩展到全球部署时分层：区域强一致+跨区域最终一致+冲突不可变原则+审计追踪",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_009",
+      "layer": "C",
+      "expert_quote": "区域性强一致+全局最终一致+冲突不可变原则。每笔余额变更记录都有全局唯一的ID和时间戳，冲突时标记为待人工处理而非自动合并",
+      "confidence_reason": "专家在C层给出了技术+法律合规的双层方案"
+    }
+  },
+  {
+    "type": "优先级",
+    "content": "物理规律是超越架构原则的终极约束：'坚持全局强一致等于拒绝全球部署'",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_009",
+      "layer": "C",
+      "expert_quote": "物理规律面前，坚持全局强一致等于拒绝全球部署",
+      "confidence_reason": "专家明确命名了物理规律作为架构决策的最高约束"
+    }
+  }
+]

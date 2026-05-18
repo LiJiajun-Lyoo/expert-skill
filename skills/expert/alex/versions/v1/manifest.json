@@ -1,0 +1,43 @@
+{
+  "manifest_version": "1",
+  "id": "expert.architect.alex",
+  "kind": "expert-skill",
+  "expertise_type": "architect",
+  "preset": "expert.architect.v1",
+  "display_name": "Alex",
+  "entrypoints": {
+    "default": "SKILL.md"
+  },
+  "artifacts": [
+    "SKILL.md",
+    "expertise.md",
+    "knowledge_graph.md",
+    "heuristics.json",
+    "meta.json",
+    "manifest.json"
+  ],
+  "capabilities": [
+    "expertise"
+  ],
+  "engine": {
+    "name": "expert-skill",
+    "kind": "expert-skill",
+    "expertise_type": "architect",
+    "preset": "expert.architect.v1",
+    "prompt_bundle": {
+      "preset": "expert.architect.v1",
+      "intake": "prompts/expertise/architect/intake.md",
+      "analyzer": "prompts/expertise/architect/analyzer.md",
+      "builder": "prompts/expertise/architect/builder.md"
+    }
+  },
+  "install": {
+    "compatible_runtimes": [
+      "claude-code",
+      "openclaw",
+      "hermes",
+      "codex"
+    ],
+    "min_schema_version": "1"
+  }
+}

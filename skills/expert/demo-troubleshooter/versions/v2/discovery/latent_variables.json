@@ -1,0 +1,93 @@
+[
+  {
+    "id": "lv_001",
+    "label": "故障等级隐性权重",
+    "source_type": "silent_topic",
+    "evidence_from_profile": "suspected_gaps[3]：材料中完全没有出现故障等级划分概念，但 known_decisions 和 visible_knowledge 中所有的止血原则、操作建议都隐含着对'严重性'的判断（如'业务损失正在快速扩大'→先止血，'可以降级运行'→边观察边分析）。visible_knowledge[5] 的'止血 vs 根因分析'二叉分支，本质上是一个等级判断的输出结果，但判断标准从未被写出来。",
+    "hypothesized_variable": {
+      "name": "incident_severity_implicit_weights",
+      "description": "frigga 在判断故障是 P0/P1/P2 时使用的隐性加权模型，决定升级路径和处置优先级。材料中呈现的所有'是否立即止血'决策，本质上都是这个等级判断的下游产出。",
+      "why_latent": "故障等级判断在材料中完全缺席，但每一个处置决策都隐含了等级前提。这种沉默可能来自两个方向：其一，frigga 对等级判断过于内化，认为是'一看就知道'的直觉而不值得说明；其二，等级判断依赖业务上下文（哪些业务方在等、是否是交易核心链路），这类上下文是经验性的隐性输入，不属于'通用规则'因此从未被显性化记录。"
+    },
+    "testability": "high",
+    "priority": 10
+  },
+  {
+    "id": "lv_002",
+    "label": "扩容触发水位线",
+    "source_type": "rule_boundary",
+    "evidence_from_profile": "visible_knowledge[6] 写道'流量激增时先判断流量是临时突发还是持续增长，再决定用限流还是扩容'，visible_knowledge[1] 写道'消息队列积压超 10 万条时优先限流而非扩容'，诊断决策链·操作原则写道'资源利用率未到临界点时不优先扩容'——三处规则都使用了'临界点''不优先扩容'等结论性表述，但全篇没有出现任何 CPU% 或内存% 的具体数字。known_decisions[0] 的双十一决策也选择了不扩容，但未说明当时资源水位是多少。",
+    "hypothesized_variable": {
+      "name": "resource_utilization_scale_threshold",
+      "description": "frigga 决定是否进入扩容评估流程时使用的内部资源水位临界值，通常是 CPU 和内存使用率的具体百分比。低于此水位时一律优先限流，达到此水位时才开始评估扩容。",
+      "why_latent": "材料中反复出现'到了临界点才考虑扩容'的判断结论，却从未说明临界点的数值。这类阈值通常来自踩坑经验（曾经在某个水位扩容导致系统反而压垮），因此是经验性的个人标准而非书本知识，专家往往认为是'自己系统的特定情况'不值得显性化，实际上是高度可迁移的判断参数。"
+    },
+    "testability": "high",
+    "priority": 9
+  },
+  {
+    "id": "lv_003",
+    "label": "熔断触发判断模型",
+    "source_type": "rule_boundary",
+    "evidence_from_profile": "诊断决策链·操作原则写道'下游错误率持续上升时触发；保护自身服务，防止级联失败'，但'持续上升'是完全模糊的定性表述。known_decisions[0] 双十一使用了'熔断 + 限流组合'止血，但没有说明是在什么错误率、持续多久时触发了熔断。visible_knowledge 中无任何关于熔断触发参数的具体数字。",
+    "hypothesized_variable": {
+      "name": "circuit_breaker_trigger_model",
+      "description": "frigga 决定触发熔断的内部判断模型，可能包含下游错误率阈值、持续时间窗口，以及对下游恢复时间的预判。不同于静态的熔断配置参数，这里指的是 frigga 在实际故障中手动决定是否触发、何时触发的隐性决策框架。",
+      "why_latent": "熔断在材料中只作为一种'应急手段'出现，但触发时机的判断逻辑完全没有被说明。这可能因为熔断触发在 frigga 的经验里已经是'感觉到了就触发'的直觉判断，不需要事先对外解释；真正的判断模型（包括对下游恢复时间的预期）是在压力下形成的隐性直觉，不属于可以写进文档的显性规则。"
+    },
+    "testability": "high",
+    "priority": 8
+  },
+  {
+    "id": "lv_004",
+    "label": "操作可逆性权重",
+    "source_type": "comparison_gap",
+    "evidence_from_profile": "known_decisions[0]（双十一）选择了限流而非扩容，经验教训·教训 1 明确说明原因是'限流是可逆的，扩容不是'。known_decisions[1]（主库过载）选择等待低谷窗口而非高峰期切换，同样暗含'不可逆操作在高峰期代价更高'的判断。known_decisions[2]（提前修复）推迟了修复操作，教训 2 解释为'引入新变量使排查更复杂'——三个决策中有两个明确提到可逆性，一个隐含了可逆性考量。但'可逆性'如何量化影响决策权重从未被说明。",
+    "hypothesized_variable": {
+      "name": "operation_reversibility_weight",
+      "description": "frigga 在选择应急操作方案时，对操作可逆性的隐性加权程度。这个权重决定了在同等止血效果下，他优先选择可逆方案到什么程度——是只要可逆就优先选，还是在可逆方案止血效果明显差时会切换到不可逆方案。",
+      "why_latent": "可逆性作为一个判断原则在材料中出现了一次（限流 vs 扩容），但作为影响三个不同决策的隐性权重，它从未被显性化为一个可操作的决策维度。frigga 自己可能并没有意识到'可逆性优先'已经成了他跨场景的系统性偏好；当可逆方案和不可逆方案止血效果相近时，他的真实权重阈值（多少效果差距才值得转向不可逆方案）完全未知。"
+    },
+    "testability": "high",
+    "priority": 8
+  },
+  {
+    "id": "lv_005",
+    "label": "慢查询介入触发点",
+    "source_type": "silent_topic",
+    "evidence_from_profile": "domain_context.common_pitfalls[1]：'慢查询在低峰期不触发业务告警，累积效应在高峰期爆发时才被发现，错过了干预时机'。经验教训·教训 3：'低峰期定期巡检慢查询日志，尤其在大促前做专项排查'。suspected_gaps[2] 指出全篇材料从未描述慢查询达到什么程度时需要立即介入。虽然强调了慢查询的危险性，但从观察到干预的触发条件完全缺席。",
+    "hypothesized_variable": {
+      "name": "slow_query_intervention_threshold",
+      "description": "frigga 决定从'观察记录'升级到'立即介入处理'慢查询时使用的内部门槛，可能涉及慢查询条数、P99 延迟升高倍率、持续时间的某种组合判断。",
+      "why_latent": "慢查询介入判断在材料里是沉默话题——专家明知慢查询危险，但从未说出'到了这个程度就必须动'的标准。这种沉默通常发生在专家对判断过于内化：他在实际操作中依赖的是多维信号的综合感知（条数+幅度+趋势），而不是单一可言说的规则，因此这个判断从来没有被概念化为一个可传递的标准。"
+    },
+    "testability": "medium",
+    "priority": 7
+  },
+  {
+    "id": "lv_006",
+    "label": "链路追踪截止层级",
+    "source_type": "domain_disagreement",
+    "evidence_from_profile": "诊断决策链·定位故障层：列出了'延迟异常 → 检查连接池 → 检查慢查询 → 检查下游服务响应时间'的排查路径，但当下游也有问题时，是否继续向更下层追踪完全没有说明。domain_context.methodology_clashes 隐含了'快速止血 vs 根因分析'的时间压力冲突——链路追踪到几层本质上就是这个冲突的具体化：追踪越深越接近根因，但耗时更长。suspected_gaps[4] 指出材料中从未提及追踪深度的截止规则。",
+    "hypothesized_variable": {
+      "name": "tracing_depth_cutoff_rule",
+      "description": "frigga 在分布式链路追踪中决定停止向下追踪的隐性规则，可能基于：已定位到可控边界的下游服务、业务紧急程度（越紧急越早停止追踪在当前层处理）、当前层是否有可操作的止血手段。",
+      "why_latent": "材料中明确说了诊断路径，但从未提追踪到几层停止。这类规则难以被显性化，因为截止决策是情境化的（下游服务的可控性、当前故障的紧急程度），专家在实战中依赖的是对服务边界的感知，而不是一个固定的层数规则。这类感知很难被转化为可言说的通用规则，所以从未出现在材料里。"
+    },
+    "testability": "medium",
+    "priority": 6
+  },
+  {
+    "id": "lv_007",
+    "label": "诊断失效升级判断",
+    "source_type": "rule_boundary",
+    "evidence_from_profile": "visible_knowledge[0]：'P99 延迟升高但 CPU 正常时，第一反应是检查连接池'。诊断决策链·定位故障层给出了三条排查路径（延迟异常→连接池→慢查询→下游），但每一条路径都是'命中即停'的正向流程。当检查了连接池、慢查询和下游都没有发现明显问题时，下一步怎么做——材料中完全没有'排查失效'或'排查没找到根因'时的处置逻辑。",
+    "hypothesized_variable": {
+      "name": "diagnostic_dead_end_escalation_rule",
+      "description": "frigga 在按标准路径排查后未找到根因时的升级判断规则，可能包括：继续扩大排查范围的条件、向上级或其他团队求助的触发时机、放弃根因分析直接降级处理的决策点。",
+      "why_latent": "材料中的诊断路径只描述了'找到了怎么办'，从未描述'没找到怎么办'。这种排查失效时的处置逻辑通常是最经验性的部分——它依赖对组织边界的感知、对故障复现成本的估算、对时间窗口的紧迫性判断，这些都是情境性的隐性知识，不适合写成通用规则，因此从未被文档化。"
+    },
+    "testability": "medium",
+    "priority": 5
+  }
+]

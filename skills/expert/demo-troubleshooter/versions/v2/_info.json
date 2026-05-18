@@ -1,0 +1,15 @@
+{
+  "version": "v2",
+  "backed_up_at": "2026-05-13T09:09:22.412643+00:00",
+  "artifacts_copied": [
+    "discovery",
+    "expertise.md",
+    "heuristics.json",
+    "interview_transcript.md",
+    "knowledge_graph.md",
+    "latent_report.md",
+    "manifest.json",
+    "meta.json",
+    "SKILL.md"
+  ]
+}

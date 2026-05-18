@@ -1,0 +1,59 @@
+{
+  "name": "Alex",
+  "slug": "alex",
+  "expertise_type": "architect",
+  "profile": {},
+  "knowledge_sources": [],
+  "lifecycle": {
+    "status": "active",
+    "created_at": "2026-05-13T10:39:18.073192+00:00",
+    "updated_at": "2026-05-13T10:39:18.073192+00:00",
+    "version": "v1"
+  },
+  "generation": {
+    "engine": "expert-skill",
+    "expertise_type": "architect",
+    "preset": "expert.architect.v1",
+    "prompt_bundle": {
+      "preset": "expert.architect.v1",
+      "intake": "prompts/expertise/architect/intake.md",
+      "analyzer": "prompts/expertise/architect/analyzer.md",
+      "builder": "prompts/expertise/architect/builder.md"
+    },
+    "created_from": []
+  },
+  "classification": {
+    "expertise_type": "architect",
+    "knowledge_format": "design_principles",
+    "execution_model": "evaluative",
+    "language": "zh-CN"
+  },
+  "schema_version": "1",
+  "kind": "expert-skill",
+  "preset": "expert.architect.v1",
+  "display_name": "Alex",
+  "id": "expert.architect.alex",
+  "artifacts": {
+    "combined_skill": "SKILL.md",
+    "expertise_doc": "expertise.md",
+    "knowledge_graph": "knowledge_graph.md",
+    "heuristics": "heuristics.json",
+    "manifest": "manifest.json",
+    "latent_report": "latent_report.md",
+    "interview_transcript": "interview_transcript.md",
+    "combined_name": "expert_alex",
+    "combined_command": "expert-alex"
+  },
+  "summary": "Alex, 架构专家",
+  "discovery": {
+    "enabled": true,
+    "status": "analysis_ready",
+    "interview_count": 0,
+    "latent_variable_count": 9,
+    "confidence_summary": {},
+    "triplet_count": 9,
+    "analysis_completed": true,
+    "latent_finding_count": 27,
+    "report_generated": true
+  }
+}

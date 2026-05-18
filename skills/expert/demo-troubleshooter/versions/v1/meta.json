@@ -1,0 +1,64 @@
+{
+  "name": "frigga",
+  "slug": "demo-troubleshooter",
+  "expertise_type": "troubleshooter",
+  "display_name": "frigga",
+  "profile": {
+    "company": "技术公司",
+    "level": "P8",
+    "role": "分布式系统工程师",
+    "domain": "分布式系统故障排查"
+  },
+  "knowledge_sources": [],
+  "discovery": {
+    "enabled": true,
+    "status": "analysis_ready",
+    "interview_count": 1,
+    "latent_variable_count": 7,
+    "confidence_summary": {},
+    "triplet_count": 4,
+    "analysis_completed": true,
+    "latent_finding_count": 12,
+    "report_generated": true
+  },
+  "lifecycle": {
+    "status": "active",
+    "created_at": "2026-05-13T07:15:17.286111+00:00",
+    "updated_at": "2026-05-13T07:15:17.286111+00:00",
+    "version": "v1"
+  },
+  "generation": {
+    "engine": "expert-skill",
+    "expertise_type": "troubleshooter",
+    "preset": "expert.troubleshooter.v1",
+    "prompt_bundle": {
+      "preset": "expert.troubleshooter.v1",
+      "intake": "prompts/expertise/troubleshooter/intake.md",
+      "analyzer": "prompts/expertise/troubleshooter/analyzer.md",
+      "builder": "prompts/expertise/troubleshooter/builder.md"
+    },
+    "created_from": []
+  },
+  "classification": {
+    "expertise_type": "troubleshooter",
+    "knowledge_format": "decision_tree",
+    "execution_model": "diagnostic",
+    "language": "zh-CN"
+  },
+  "schema_version": "1",
+  "kind": "expert-skill",
+  "preset": "expert.troubleshooter.v1",
+  "id": "expert.troubleshooter.demo-troubleshooter",
+  "artifacts": {
+    "combined_skill": "SKILL.md",
+    "expertise_doc": "expertise.md",
+    "knowledge_graph": "knowledge_graph.md",
+    "heuristics": "heuristics.json",
+    "manifest": "manifest.json",
+    "latent_report": "latent_report.md",
+    "interview_transcript": "interview_transcript.md",
+    "combined_name": "expert_demo-troubleshooter",
+    "combined_command": "expert-demo-troubleshooter"
+  },
+  "summary": "frigga, 技术公司 · P8 · 分布式系统工程师 · 分布式系统故障排查（诊断专家）"
+}

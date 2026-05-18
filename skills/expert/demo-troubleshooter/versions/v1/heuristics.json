@@ -1,0 +1,14 @@
+{
+  "expert": "frigga",
+  "expertise_type": "troubleshooter",
+  "knowledge_format": "decision_tree",
+  "execution_model": "diagnostic",
+  "sections": [
+    "常见故障模式",
+    "诊断决策链",
+    "嗅觉检查项 (smell tests)",
+    "工具与命令",
+    "经验教训"
+  ],
+  "rules": []
+}

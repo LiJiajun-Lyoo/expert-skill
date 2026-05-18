@@ -1,0 +1,14 @@
+{
+  "expert": "Alex",
+  "expertise_type": "architect",
+  "knowledge_format": "design_principles",
+  "execution_model": "evaluative",
+  "sections": [
+    "设计原则",
+    "技术选型矩阵",
+    "反模式与红线",
+    "架构决策记录 (ADR)",
+    "经验教训"
+  ],
+  "rules": []
+}
