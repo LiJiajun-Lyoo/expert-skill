@@ -64,7 +64,9 @@ def check_triplet_analysis_schema(analysis: dict) -> list[str]:
 # ---------------------------------------------------------------------------
 
 def check_p6_quality_gate(
-    result: dict, transcript: list[dict]
+    result: dict,
+    transcript: list[dict],
+    triplet_groups: list[dict] | None = None,
 ) -> tuple[list[str], list[str]]:
     """P6 gate: result completeness, per-triplet evidence, boundary map coverage.
 
@@ -76,6 +78,33 @@ def check_p6_quality_gate(
     analyses = result.get("triplet_analyses", [])
     if not analyses:
         errors.append("P6: triplet_analyses 不能为空")
+
+    expected_triplet_ids: set[str] = {
+        r.get("triplet_id", "")
+        for r in transcript
+        if r.get("triplet_id")
+    }
+    if triplet_groups is not None:
+        expected_triplet_ids.update(
+            g.get("id", "")
+            for g in triplet_groups
+            if g.get("id")
+        )
+    analysis_triplet_ids = [
+        a.get("triplet_id", "")
+        for a in analyses
+        if a.get("triplet_id")
+    ]
+    seen: set[str] = set()
+    duplicate_ids: set[str] = set()
+    for tid in analysis_triplet_ids:
+        if tid in seen:
+            duplicate_ids.add(tid)
+        seen.add(tid)
+    for tid in sorted(expected_triplet_ids - set(analysis_triplet_ids)):
+        errors.append(f"P6: 三联体 {tid} 缺少分析结果")
+    for tid in sorted(duplicate_ids):
+        errors.append(f"P6: 三联体 {tid} 出现重复分析结果")
 
     cross = result.get("cross_analysis", {})
     sections = result.get("report_sections", {})
@@ -377,7 +406,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     # P6 quality gate
-    errors, warnings = check_p6_quality_gate(result, transcript)
+    errors, warnings = check_p6_quality_gate(result, transcript, groups)
     for w in warnings:
         print(f"⚠️  {w}")
     if errors:

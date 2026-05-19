@@ -129,18 +129,22 @@ def compute_ab_overlap(group: dict) -> float:
 # ---------------------------------------------------------------------------
 
 def check_p4_extra_quality_gate(groups: list[dict], target_ids: list[str]) -> list[str]:
-    """P4 extra gate: coverage, overlap, quality_notes, conflict_added."""
+    """P4 extra gate: coverage, hard overlap, quality_notes, conflict_added."""
     errors: list[str] = []
     covered = {g.get("target_variable") for g in groups}
     for tid in target_ids:
         if tid not in covered:
             errors.append(f"P4: 候选 {tid} 没有对应三联体组")
     for g in groups:
-        if g.get("overlap_warning") and not g.get("manual_override_reason"):
+        if "ab_overlap_score" not in g:
+            g["ab_overlap_score"] = compute_ab_overlap(g)
+        if g.get("ab_overlap_score", 0) < 0.70:
+            g["overlap_warning"] = True
+        if g.get("overlap_warning"):
             score = g.get("ab_overlap_score", 0)
             errors.append(
                 f"P4: 三联体组 {g.get('id')} A/B 重叠率不足 0.70"
-                f"（得分 {score:.2f}），且无 manual_override_reason"
+                f"（得分 {score:.2f}）"
             )
         notes = g.get("quality_notes", {})
         for key in ("single_variable_control", "unpredictability", "decision_difference"):
@@ -417,21 +421,13 @@ def main(argv: list[str] | None = None) -> int:
             print(e, file=sys.stderr)
         return 1
 
-    # Compute A/B overlap for each group
-    has_overlap_block = False
+    # Compute A/B overlap for each group. This is a hard gate because the design
+    # depends on surface similarity for single-variable control.
     for g in groups:
         score = compute_ab_overlap(g)
         g["ab_overlap_score"] = score
         if score < 0.70:
             g["overlap_warning"] = True
-            if g.get("manual_override_reason"):
-                print(
-                    f"警告：三联体组 {g.get('id')} A/B 重叠率 {score:.2f} < 0.70，"
-                    f"已提供 manual_override_reason，允许保存。",
-                    file=sys.stderr,
-                )
-            else:
-                has_overlap_block = True
 
     # P4 extra quality gate
     target_ids_for_gate = [v["id"] for v in target_vars]
@@ -440,14 +436,6 @@ def main(argv: list[str] | None = None) -> int:
         print("错误：P4 质量门不通过，triplet_groups.json 不保存：", file=sys.stderr)
         for e in gate_errors:
             print(f"  - {e}", file=sys.stderr)
-        return 1
-
-    if has_overlap_block:
-        print(
-            "错误：存在 A/B 重叠率不足 0.70 的三联体组且无 manual_override_reason，"
-            "triplet_groups.json 不保存。",
-            file=sys.stderr,
-        )
         return 1
 
     # Save triplet_groups.json

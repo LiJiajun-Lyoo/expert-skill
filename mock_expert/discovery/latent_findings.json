@@ -1,0 +1,68 @@
+[
+  {
+    "type": "variable",
+    "content": "CPU 85% 扩容触发阈值（内存 90%）",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_001",
+      "layer": "A",
+      "expert_quote": "75% 的话我不会立刻扩容。我有个内部标准，CPU 到 85% 以上、内存到 90% 以上才触发扩容评估。",
+      "confidence_reason": "专家明确说出了具体数值阈值，高置信度"
+    }
+  },
+  {
+    "type": "variable",
+    "content": "临时热点流量的判断依据：外部下降信号存在才锁定为临时",
+    "confidence": "medium",
+    "evidence": {
+      "triplet_id": "tg_001",
+      "layer": "B",
+      "expert_quote": "如果我有外部信号，比如这个热点事件已经过了顶峰，下降趋势出来了，那我就锁定为临时，只限流。",
+      "confidence_reason": "专家现场发明了临时流量边界"
+    }
+  },
+  {
+    "type": "variable",
+    "content": "慢查询介入时间阈值：40 分钟是介入坎，30 分钟开始担心",
+    "confidence": "medium",
+    "evidence": {
+      "triplet_id": "tg_002",
+      "layer": "B",
+      "expert_quote": "40 分钟我觉得是一个坎，超过这个就算幅度不大，我也要动了。",
+      "confidence_reason": "专家首次明确说出时间阈值，但之前材料完全没有记录"
+    }
+  },
+  {
+    "type": "variable",
+    "content": "大促前 2 小时变更冻结边界",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_002",
+      "layer": "C",
+      "expert_quote": "大促前 2 小时是变更冻结期，只做无风险操作。",
+      "confidence_reason": "专家明确给出业务窗口边界"
+    }
+  },
+  {
+    "type": "variable",
+    "content": "大客户集中反馈会把短时低比例故障从 P2 推高到 P1 或 P1 预警",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_003",
+      "layer": "B",
+      "expert_quote": "有大客户集中反馈就不一样了，我会升到 P1 或至少 P1 预警。",
+      "confidence_reason": "专家明确把大客户反馈作为定级权重"
+    }
+  },
+  {
+    "type": "优先级",
+    "content": "故障定级优先组织响应，修复动作仍受爆炸半径约束",
+    "confidence": "high",
+    "evidence": {
+      "triplet_id": "tg_003",
+      "layer": "C",
+      "expert_quote": "P1 不等于马上做高风险修复，P1 是让信息和资源到位。",
+      "confidence_reason": "专家清楚区分了定级和动作选择"
+    }
+  }
+]

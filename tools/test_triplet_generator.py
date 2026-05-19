@@ -359,13 +359,20 @@ class TestOverlapBelowThresholdBlocksWithoutOverride(unittest.TestCase):
             saved = base_dir / "zhang-san" / "discovery" / "triplet_groups.json"
             self.assertFalse(saved.exists())
 
+    def test_quality_gate_computes_overlap_when_not_precomputed(self):
+        g = _make_group("tg_001", "lv_001", text_a=_TEXT_A, text_b=_TEXT_B_DIFFERENT)
+        errors = check_p4_extra_quality_gate([g], ["lv_001"])
+        overlap_errors = [e for e in errors if "重叠率" in e]
+        self.assertTrue(overlap_errors, "P4 gate must compute A/B overlap itself")
+        self.assertIn("ab_overlap_score", g)
+
 
 # ---------------------------------------------------------------------------
-# Test 10: manual_override suppresses error but keeps overlap_warning
+# Test 10: manual_override cannot suppress the hard overlap gate
 # ---------------------------------------------------------------------------
 
 class TestManualOverrideSuppressesError(unittest.TestCase):
-    def test_manual_override_suppresses_error(self):
+    def test_manual_override_does_not_suppress_overlap_error(self):
         g = _make_group("tg_001", "lv_001", text_a=_TEXT_A, text_b=_TEXT_B_DIFFERENT,
                         manual_override_reason="场景语义等价但字面分数不足")
         score = compute_ab_overlap(g)
@@ -374,10 +381,8 @@ class TestManualOverrideSuppressesError(unittest.TestCase):
             g["overlap_warning"] = True
 
         errors = check_p4_extra_quality_gate([g], ["lv_001"])
-        # Should NOT produce overlap error because manual_override_reason is set
         overlap_errors = [e for e in errors if "重叠率" in e]
-        self.assertEqual(overlap_errors, [], f"Unexpected overlap errors: {overlap_errors}")
-        # overlap_warning flag must remain True
+        self.assertTrue(overlap_errors, "manual_override_reason must not bypass the 70% overlap gate")
         if score < 0.70:
             self.assertTrue(g.get("overlap_warning"))
 

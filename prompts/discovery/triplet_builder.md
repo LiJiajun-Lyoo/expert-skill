@@ -223,7 +223,7 @@ expected_reveals：
 ## 输出通过标准
 
 - 每个目标候选（testability 为 high/medium）**至少 1 组**三联体
-- A/B 场景文本表面重叠率 ≥ 70%（由工具计算，不足时需提供 `manual_override_reason`）
+- A/B 场景文本表面重叠率 ≥ 70%（由工具计算，不足即判定无效，不支持人工绕过）
 - 每个 question 的 `probes.followups` **至少 2 条**
 - `expected_reveals` 三个子字段（`visible_rule`、`latent_variable`、`priority_signal`）均存在
 - 每组三联体必须包含 `quality_notes` 的三个子字段：`single_variable_control`、`unpredictability`、`decision_difference`

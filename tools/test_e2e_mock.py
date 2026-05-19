@@ -8,17 +8,15 @@ All P7 write tests use pytest tmp_path to avoid polluting mock_expert/.
 Scope note
 ----------
 These tests are *smoke tests*: they verify the main chain (P2→P7) using a
-2-triplet fixture, not full coverage of all P3 candidates.  The P4 full-coverage
-quality gate (every high/medium candidate has a triplet) is exercised separately
-in ``test_p4_gate_requires_all_selected_high_medium_targets_covered`` below.
-The mock fixture intentionally covers only the variables targeted by its two
-triplet groups; passing ``target_ids`` as the full P3 pool to
-``check_p4_extra_quality_gate`` would (correctly) fail.
+3-triplet fixture that covers every high/medium P3 candidate selected by the
+default P4 path.  The P4 full-coverage quality gate is also exercised
+separately in ``test_p4_gate_requires_all_selected_high_medium_targets_covered``.
 """
 
 from __future__ import annotations
 
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -34,7 +32,7 @@ from discovery_schema import (
     validate_triplet_group,
 )
 from latent_variable_builder import check_p3_extra_quality_gate
-from triplet_generator import check_p4_extra_quality_gate
+from triplet_generator import check_p4_extra_quality_gate, main as triplet_main
 from interview_session import check_p5_quality_gate
 from interview_analyzer import check_p6_quality_gate
 import skill_writer as sw
@@ -134,10 +132,34 @@ def test_mock_triplet_groups_pass_schema():
 
 def test_mock_triplet_groups_pass_p4_gate():
     groups = _load_json(MOCK_DISCOVERY / "triplet_groups.json")
-    # Only pass the variable IDs actually covered by the mock triplets
-    target_ids = [g["target_variable"] for g in groups]
+    variables = _load_json(MOCK_DISCOVERY / "latent_variables.json")
+    target_ids = [
+        v["id"] for v in variables
+        if v.get("testability") in ("high", "medium")
+    ]
     errors = check_p4_extra_quality_gate(groups, target_ids)
     assert errors == [], f"P4 gate errors: {errors}"
+
+
+def test_mock_triplet_generator_default_parse_output_closes_p4(tmp_path):
+    """The mock fixture must pass the real P4 default target selection path."""
+    base_dir = tmp_path / "skills" / "expert"
+    skill_dir = base_dir / "mock-troubleshooter"
+    discovery_dir = skill_dir / "discovery"
+    discovery_dir.mkdir(parents=True)
+    for filename in ("expert_profile.json", "latent_variables.json"):
+        shutil.copy(MOCK_DISCOVERY / filename, discovery_dir / filename)
+    shutil.copy(MOCK_DIR / "meta.json", skill_dir / "meta.json")
+
+    ret = triplet_main([
+        "--slug", "mock-troubleshooter",
+        "--base-dir", str(base_dir),
+        "--parse-output", str(MOCK_DISCOVERY / "triplet_groups.json"),
+    ])
+
+    assert ret == 0
+    assert (discovery_dir / "triplet_groups.json").exists()
+    assert (discovery_dir / "interview_script.md").exists()
 
 
 # ---------------------------------------------------------------------------
@@ -157,7 +179,8 @@ def test_mock_transcript_passes_p5_gate():
 def test_mock_analysis_passes_p6_gate():
     result = _load_mock_analysis()
     transcript = _load_mock_transcript()
-    errors, warnings = check_p6_quality_gate(result, transcript)
+    groups = _load_json(MOCK_DISCOVERY / "triplet_groups.json")
+    errors, warnings = check_p6_quality_gate(result, transcript, groups)
     assert errors == [], f"P6 gate errors: {errors}"
     assert warnings == [], f"P6 gate warnings: {warnings}"
 

@@ -48,7 +48,7 @@
       "description": "专家决定追踪到哪一层时使用的隐性规则",
       "why_latent": "表面上是技术判断，实则包含对业务紧急程度的评估"
     },
-    "testability": "medium",
+    "testability": "low",
     "priority": 6
   },
   {
@@ -61,7 +61,7 @@
       "description": "专家对下游服务恢复时间的预判如何影响是否触发熔断",
       "why_latent": "熔断决策看起来是即时反应，但包含了对下游的时间预测"
     },
-    "testability": "high",
+    "testability": "low",
     "priority": 8
   }
 ]

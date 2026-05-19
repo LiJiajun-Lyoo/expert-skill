@@ -578,6 +578,7 @@ mock_expert/
     ├── interview_transcript.json
     ├── interview_transcript.md
     ├── interview_analysis.json
+    ├── latent_findings.json
     └── latent_report.md
 ```
 

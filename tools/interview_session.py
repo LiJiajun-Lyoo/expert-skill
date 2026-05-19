@@ -251,6 +251,7 @@ def run_triplet_interview(
     force_start_layer: str | None = None,
     input_fn=None,
     print_fn=None,
+    persist_records_fn=None,
 ) -> list[dict]:
     """Run the A→B→C interview for one triplet group. Returns newly created records.
 
@@ -291,6 +292,8 @@ def run_triplet_interview(
             next_layer=next_l if next_l != "done" else "",
             completed_triplets=done_now,
         )
+        if persist_records_fn is not None:
+            persist_records_fn(all_records)
 
     return new_records
 
@@ -414,8 +417,23 @@ def main(argv: list[str] | None = None, input_fn=None, print_fn=None) -> int:
             return 1
         bp = json.loads(bp_path.read_text(encoding="utf-8"))
         completed_triplets = bp.get("completed_triplets", [])
+        resume_triplet_id = bp.get("next_triplet_id", "")
+        resume_layer = bp.get("next_layer") or None
         if transcript_path.exists():
             records = json.loads(transcript_path.read_text(encoding="utf-8"))
+    else:
+        resume_triplet_id = ""
+        resume_layer = None
+
+    if args.resume and resume_triplet_id:
+        matching_index = next(
+            (i for i, g in enumerate(target_groups) if g.get("id") == resume_triplet_id),
+            None,
+        )
+        if matching_index is None:
+            print(f"错误：断点中的三联体不存在：{resume_triplet_id}", file=sys.stderr)
+            return 1
+        target_groups = target_groups[matching_index:]
 
     # Create discovery dir if needed
     discovery_dir.mkdir(parents=True, exist_ok=True)
@@ -433,16 +451,27 @@ def main(argv: list[str] | None = None, input_fn=None, print_fn=None) -> int:
         if get_next_layer(records, gid) == "done":
             completed_triplets.append(gid)
             continue
+        force_start_layer = resume_layer if args.resume and gid == resume_triplet_id else None
+
+        def _persist_records(current_records: list[dict]) -> None:
+            transcript_path.write_text(
+                json.dumps(current_records, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+
         new_recs = run_triplet_interview(
             group, discovery_dir, records, completed_triplets,
+            force_start_layer=force_start_layer,
             input_fn=_input, print_fn=_print,
+            persist_records_fn=_persist_records,
         )
         records.extend(new_recs)
         if get_next_layer(records, gid) == "done":
             if gid not in completed_triplets:
                 completed_triplets.append(gid)
 
-        # Save transcript after each triplet
+        # Save transcript after each triplet as a final guard. The per-layer
+        # persistence above is what makes --resume robust after interruption.
         transcript_path.write_text(json.dumps(records, ensure_ascii=False, indent=2), encoding="utf-8")
 
     # Generate Markdown transcript

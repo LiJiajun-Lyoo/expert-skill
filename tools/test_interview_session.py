@@ -495,7 +495,31 @@ def test_resume_uses_next_layer_from_breakpoint(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# 19. test_quality_gate_fails_empty_expert_answer
+# 19. test_run_triplet_persists_after_each_layer
+# ---------------------------------------------------------------------------
+
+def test_run_triplet_persists_after_each_layer(tmp_path):
+    discovery = tmp_path / "discovery"
+    discovery.mkdir()
+    snapshots = []
+
+    inputs = layer_inputs(answer="回答A") + layer_inputs(answer="回答B") + layer_inputs(answer="回答C")
+    new_records = iss.run_triplet_interview(
+        SAMPLE_GROUP,
+        discovery,
+        [],
+        [],
+        input_fn=make_input_fn(*inputs),
+        print_fn=lambda x: None,
+        persist_records_fn=lambda records: snapshots.append([r["question_layer"] for r in records]),
+    )
+
+    assert [r["question_layer"] for r in new_records] == ["A", "B", "C"]
+    assert snapshots == [["A"], ["A", "B"], ["A", "B", "C"]]
+
+
+# ---------------------------------------------------------------------------
+# 20. test_quality_gate_fails_empty_expert_answer
 # ---------------------------------------------------------------------------
 
 def test_quality_gate_fails_empty_expert_answer():
@@ -515,7 +539,7 @@ def test_quality_gate_fails_empty_expert_answer():
 
 
 # ---------------------------------------------------------------------------
-# 20. test_record_uses_target_variable_field
+# 21. test_record_uses_target_variable_field
 # ---------------------------------------------------------------------------
 
 def test_record_uses_target_variable_field():

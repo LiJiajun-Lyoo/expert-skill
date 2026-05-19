@@ -517,7 +517,46 @@ def test_result_requires_report_sections():
 
 
 # ---------------------------------------------------------------------------
-# 21. test_parse_output_saves_interview_analysis_json
+# 21. test_p6_gate_requires_analysis_for_each_triplet
+# ---------------------------------------------------------------------------
+
+def test_p6_gate_requires_analysis_for_each_triplet():
+    transcript = SAMPLE_TRANSCRIPT + [
+        {
+            "triplet_id": "tg_002",
+            "question_layer": "A",
+            "expert_answer": "回答A2",
+            "signals_observed": [],
+        },
+        {
+            "triplet_id": "tg_002",
+            "question_layer": "B",
+            "expert_answer": "回答B2",
+            "signals_observed": [],
+        },
+        {
+            "triplet_id": "tg_002",
+            "question_layer": "C",
+            "expert_answer": "回答C2",
+            "signals_observed": [],
+        },
+    ]
+    groups = SAMPLE_GROUPS + [
+        {
+            "id": "tg_002",
+            "target_variable": "lv_002",
+            "question_A": {"text": "A2题目"},
+            "question_B": {"text": "B2题目"},
+            "question_C": {"text": "C2题目"},
+        }
+    ]
+
+    errors, _ = ia.check_p6_quality_gate(VALID_RESULT, transcript, groups)
+    assert any("tg_002" in e and "缺少分析" in e for e in errors)
+
+
+# ---------------------------------------------------------------------------
+# 22. test_parse_output_saves_interview_analysis_json
 # ---------------------------------------------------------------------------
 
 def test_parse_output_saves_interview_analysis_json(tmp_path):
