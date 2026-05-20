@@ -25,7 +25,7 @@
 
 ### 专长类型
 {expertise_type}
-（troubleshooter / architect / reviewer / decision_maker / operator）
+（troubleshooter / architect / reviewer / decision_maker / operator / clinical_care_manager / care_operation_specialist / medical_safety_reviewer）
 
 ### 已知专长描述（可选）
 {expertise_description}

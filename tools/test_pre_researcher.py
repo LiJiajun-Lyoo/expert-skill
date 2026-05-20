@@ -231,6 +231,13 @@ class TestP2QualityGateFailEmptyDomainContext(unittest.TestCase):
 # ---------------------------------------------------------------------------
 
 class TestPromptAssembly(unittest.TestCase):
+    def test_discovery_template_lists_medical_expertise_types(self):
+        template = pre_researcher.PROMPT_TEMPLATE_PATH.read_text(encoding="utf-8")
+
+        self.assertIn("clinical_care_manager", template)
+        self.assertIn("care_operation_specialist", template)
+        self.assertIn("medical_safety_reviewer", template)
+
     def test_prompt_assembly_no_leftover_placeholders(self):
         import re
         result = assemble_prompt(

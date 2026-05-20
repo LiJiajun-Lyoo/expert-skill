@@ -1,0 +1,55 @@
+{
+  "name": "九安Demo临床照护管理专家",
+  "slug": "jiuan-demo-clinical-care",
+  "expertise_type": "clinical_care_manager",
+  "profile": {},
+  "knowledge_sources": [],
+  "lifecycle": {
+    "status": "active",
+    "created_at": "2026-05-20T03:28:03.783403+00:00",
+    "updated_at": "2026-05-20T03:28:03.783403+00:00",
+    "version": "v1"
+  },
+  "generation": {
+    "engine": "expert-skill",
+    "expertise_type": "clinical_care_manager",
+    "preset": "expert.medical.clinical_care_manager.v1",
+    "prompt_bundle": {
+      "preset": "expert.medical.clinical_care_manager.v1",
+      "intake": "prompts/expertise/medical/clinical_care_manager/intake.md",
+      "analyzer": "prompts/expertise/medical/clinical_care_manager/analyzer.md",
+      "builder": "prompts/expertise/medical/clinical_care_manager/builder.md"
+    },
+    "created_from": []
+  },
+  "classification": {
+    "expertise_type": "clinical_care_manager",
+    "knowledge_format": "clinical_care_framework",
+    "execution_model": "clinical_care_management",
+    "language": "zh-CN"
+  },
+  "schema_version": "1",
+  "kind": "expert-skill",
+  "preset": "expert.medical.clinical_care_manager.v1",
+  "display_name": "九安Demo临床照护管理专家",
+  "id": "expert.clinical_care_manager.jiuan-demo-clinical-care",
+  "artifacts": {
+    "combined_skill": "SKILL.md",
+    "expertise_doc": "expertise.md",
+    "knowledge_graph": "knowledge_graph.md",
+    "heuristics": "heuristics.json",
+    "manifest": "manifest.json",
+    "latent_report": "latent_report.md",
+    "interview_transcript": "interview_transcript.md",
+    "combined_name": "medical_expert_jiuan-demo-clinical-care",
+    "combined_command": "expert-jiuan-demo-clinical-care"
+  },
+  "summary": "九安Demo临床照护管理专家, 临床照护管理专家",
+  "discovery": {
+    "enabled": false,
+    "status": "not_started",
+    "interview_count": 0,
+    "latent_variable_count": 0,
+    "confidence_summary": {}
+  }
+}

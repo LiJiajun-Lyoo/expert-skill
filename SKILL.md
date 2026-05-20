@@ -45,7 +45,7 @@ allowed-tools: Read, Write, Edit, Bash
 
 ## 专长类型
 
-企业专家的专业能力分为 5 种类型：
+企业专家的专业能力分为工程与医疗两组类型。医疗类型是独立的一等类型，不映射为工程类型。
 
 | 类型 | 标识 | 知识形态 | 典型产出 |
 |------|------|---------|---------|
@@ -54,6 +54,9 @@ allowed-tools: Read, Write, Edit, Bash
 | 审核专家 | `reviewer` | 检查清单 | 缺陷模式库、Review 检查项、风险等级 |
 | 决策专家 | `decision_maker` | 决策框架 | 评估维度、风险评估、优先级方法 |
 | 运维专家 | `operator` | Runbook | 监控指标、SOP、升级规则 |
+| 临床照护管理专家 | `clinical_care_manager` | 临床照护框架 | 关键指标、风险分层、干预路径、升级医生规则 |
+| 照护运营专家 | `care_operation_specialist` | 照护运营 Runbook | 随访 SOP、患者教育、依从性管理、任务升级 |
+| 医疗安全审核专家 | `medical_safety_reviewer` | 医疗安全清单 | 红旗症状、用药风险、禁忌建议、转诊/急诊边界 |
 
 ---
 
@@ -79,7 +82,7 @@ allowed-tools: Read, Write, Edit, Bash
 
 1. **专家称呼**（必填）
 2. **基本信息**：公司、职级、职位、专业领域（一句话，可跳过）
-3. **专长类型**：5 选 1（可跳过，默认"诊断专家"）
+3. **专长类型**：从内置工程/医疗类型中选择（可跳过，默认"诊断专家"）
 4. **专业描述**：他擅长什么、判断框架是什么、什么时候别人会想到他（2-3 句话，可选但推荐）
 
 收集完后汇总确认。
@@ -166,6 +169,9 @@ python3 tools/feishu_mcp_client.py --url "{url}" --output /tmp/feishu_doc.txt
 | reviewer | `prompts/expertise/reviewer/intake.md` | `prompts/expertise/reviewer/analyzer.md` | `prompts/expertise/reviewer/builder.md` |
 | decision_maker | `prompts/expertise/decision_maker/intake.md` | `prompts/expertise/decision_maker/analyzer.md` | `prompts/expertise/decision_maker/builder.md` |
 | operator | `prompts/expertise/operator/intake.md` | `prompts/expertise/operator/analyzer.md` | `prompts/expertise/operator/builder.md` |
+| clinical_care_manager | `prompts/expertise/medical/clinical_care_manager/intake.md` | `prompts/expertise/medical/clinical_care_manager/analyzer.md` | `prompts/expertise/medical/clinical_care_manager/builder.md` |
+| care_operation_specialist | `prompts/expertise/medical/care_operation_specialist/intake.md` | `prompts/expertise/medical/care_operation_specialist/analyzer.md` | `prompts/expertise/medical/care_operation_specialist/builder.md` |
+| medical_safety_reviewer | `prompts/expertise/medical/medical_safety_reviewer/intake.md` | `prompts/expertise/medical/medical_safety_reviewer/analyzer.md` | `prompts/expertise/medical/medical_safety_reviewer/builder.md` |
 
 **分析流程：**
 

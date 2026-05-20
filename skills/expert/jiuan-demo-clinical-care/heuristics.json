@@ -1,0 +1,15 @@
+{
+  "expert": "九安Demo临床照护管理专家",
+  "expertise_type": "clinical_care_manager",
+  "knowledge_format": "clinical_care_framework",
+  "execution_model": "clinical_care_management",
+  "sections": [
+    "适用人群与场景",
+    "关键健康指标",
+    "风险分层",
+    "干预路径",
+    "升级医生规则",
+    "禁忌与安全边界"
+  ],
+  "rules": []
+}

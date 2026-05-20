@@ -1,0 +1,43 @@
+{
+  "manifest_version": "1",
+  "id": "expert.clinical_care_manager.jiuan-demo-clinical-care",
+  "kind": "expert-skill",
+  "expertise_type": "clinical_care_manager",
+  "preset": "expert.medical.clinical_care_manager.v1",
+  "display_name": "九安Demo临床照护管理专家",
+  "entrypoints": {
+    "default": "SKILL.md"
+  },
+  "artifacts": [
+    "SKILL.md",
+    "expertise.md",
+    "knowledge_graph.md",
+    "heuristics.json",
+    "meta.json",
+    "manifest.json"
+  ],
+  "capabilities": [
+    "expertise"
+  ],
+  "engine": {
+    "name": "expert-skill",
+    "kind": "expert-skill",
+    "expertise_type": "clinical_care_manager",
+    "preset": "expert.medical.clinical_care_manager.v1",
+    "prompt_bundle": {
+      "preset": "expert.medical.clinical_care_manager.v1",
+      "intake": "prompts/expertise/medical/clinical_care_manager/intake.md",
+      "analyzer": "prompts/expertise/medical/clinical_care_manager/analyzer.md",
+      "builder": "prompts/expertise/medical/clinical_care_manager/builder.md"
+    }
+  },
+  "install": {
+    "compatible_runtimes": [
+      "claude-code",
+      "openclaw",
+      "hermes",
+      "codex"
+    ],
+    "min_schema_version": "1"
+  }
+}

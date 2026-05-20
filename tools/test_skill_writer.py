@@ -260,6 +260,62 @@ def test_manifest_includes_latent_report(tmp_path):
     assert "latent_report.md" in manifest["artifacts"]
 
 
+def test_medical_expertise_types_are_first_class_presets():
+    types = {item["name"]: item for item in sw.list_expertise_types()}
+
+    assert "clinical_care_manager" in types
+    assert "care_operation_specialist" in types
+    assert "medical_safety_reviewer" in types
+    assert types["clinical_care_manager"]["knowledge_format"] == "clinical_care_framework"
+    assert types["care_operation_specialist"]["knowledge_format"] == "care_operation_runbook"
+    assert types["medical_safety_reviewer"]["knowledge_format"] == "medical_safety_checklist"
+
+
+def test_create_medical_expert_uses_medical_type_without_legacy_mapping(tmp_path):
+    base_dir, skill_dir = create_skill(
+        tmp_path,
+        slug="jiuan-chronic-metabolic",
+        name="九安慢病代谢管理专家",
+        expertise_type="clinical_care_manager",
+        domain_summary="糖尿病、CGM、血压与心血管代谢风险管理。",
+    )
+
+    meta = json.loads((skill_dir / "meta.json").read_text(encoding="utf-8"))
+    manifest = json.loads((skill_dir / "manifest.json").read_text(encoding="utf-8"))
+    heuristics = json.loads((skill_dir / "heuristics.json").read_text(encoding="utf-8"))
+    skill_md = (skill_dir / "SKILL.md").read_text(encoding="utf-8")
+
+    assert base_dir.endswith("skills/expert")
+    assert meta["expertise_type"] == "clinical_care_manager"
+    assert meta["preset"] == "expert.medical.clinical_care_manager.v1"
+    assert meta["id"] == "expert.clinical_care_manager.jiuan-chronic-metabolic"
+    assert meta["classification"]["knowledge_format"] == "clinical_care_framework"
+    assert meta["classification"]["execution_model"] == "clinical_care_management"
+    assert manifest["expertise_type"] == "clinical_care_manager"
+    assert manifest["preset"] == "expert.medical.clinical_care_manager.v1"
+    assert manifest["engine"]["prompt_bundle"]["intake"] == (
+        "prompts/expertise/medical/clinical_care_manager/intake.md"
+    )
+    assert heuristics["sections"] == [
+        "适用人群与场景",
+        "关键健康指标",
+        "风险分层",
+        "干预路径",
+        "升级医生规则",
+        "禁忌与安全边界",
+    ]
+
+    serialized = json.dumps(
+        {"meta": meta, "manifest": manifest, "heuristics": heuristics},
+        ensure_ascii=False,
+    )
+    assert "troubleshooter" not in serialized
+    assert "operator" not in serialized
+    assert "reviewer" not in serialized
+    assert "诊断/设计/审查/决策/操作" not in skill_md
+    assert "升级建议" in skill_md
+
+
 # ---------------------------------------------------------------------------
 # 12. test_manifest_includes_interview_transcript
 # ---------------------------------------------------------------------------
