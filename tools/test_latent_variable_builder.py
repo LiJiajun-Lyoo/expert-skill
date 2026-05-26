@@ -198,6 +198,27 @@ class TestPromptReadsExpertBlueprintJson(unittest.TestCase):
             content = prompt_file.read_text(encoding="utf-8")
             self.assertIn("（未提供）", content)
 
+    def test_malformed_expert_blueprint_returns_nonzero(self):
+        import contextlib
+        import io
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            base_dir = _write_profile(tmp_path)
+            blueprint_path = base_dir / "zhang-san" / "discovery" / "expert_blueprint.json"
+            blueprint_path.write_text("{invalid json", encoding="utf-8")
+
+            tpl = tmp_path / "tpl.md"
+            _patch_template(tpl)
+            lvb.PROMPT_TEMPLATE_PATH = tpl
+
+            stderr_capture = io.StringIO()
+            with contextlib.redirect_stderr(stderr_capture):
+                rc = main(["--slug", "zhang-san", "--base-dir", str(base_dir)])
+
+            self.assertNotEqual(rc, 0)
+            self.assertIn("expert_blueprint.json", stderr_capture.getvalue())
+
 
 # ---------------------------------------------------------------------------
 # Test 4: parse_output saves latent_variables.json on valid pool
@@ -233,7 +254,7 @@ class TestParseOutputSavesJson(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 4: gate fail — count < 5
+# Test 5: gate fail — count < 5
 # ---------------------------------------------------------------------------
 
 class TestParseOutputNoSaveOnGateFailCount(unittest.TestCase):
@@ -263,7 +284,7 @@ class TestParseOutputNoSaveOnGateFailCount(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 5: gate fail — insufficient high/medium testability
+# Test 6: gate fail — insufficient high/medium testability
 # ---------------------------------------------------------------------------
 
 class TestParseOutputNoSaveOnGateFailTestability(unittest.TestCase):
@@ -294,7 +315,7 @@ class TestParseOutputNoSaveOnGateFailTestability(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 6: saved candidates sorted by priority descending
+# Test 7: saved candidates sorted by priority descending
 # ---------------------------------------------------------------------------
 
 class TestCandidatesSortedByPriority(unittest.TestCase):
@@ -322,7 +343,7 @@ class TestCandidatesSortedByPriority(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 7: low testability candidates are preserved
+# Test 8: low testability candidates are preserved
 # ---------------------------------------------------------------------------
 
 class TestLowTestabilityCandidatesPreserved(unittest.TestCase):
@@ -358,7 +379,7 @@ class TestLowTestabilityCandidatesPreserved(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 8: schema validation rejects missing why_latent
+# Test 9: schema validation rejects missing why_latent
 # ---------------------------------------------------------------------------
 
 class TestSchemaValidationRejectsMissingWhyLatent(unittest.TestCase):
@@ -391,7 +412,7 @@ class TestSchemaValidationRejectsMissingWhyLatent(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 9: dry_run conflicts with parse_output
+# Test 10: dry_run conflicts with parse_output
 # ---------------------------------------------------------------------------
 
 class TestDryRunConflictsWithParseOutput(unittest.TestCase):
@@ -401,7 +422,7 @@ class TestDryRunConflictsWithParseOutput(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 10: dry_run does not write files
+# Test 11: dry_run does not write files
 # ---------------------------------------------------------------------------
 
 class TestDryRunDoesNotWriteFiles(unittest.TestCase):
@@ -428,7 +449,7 @@ class TestDryRunDoesNotWriteFiles(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 11: parse_output updates meta status and count
+# Test 12: parse_output updates meta status and count
 # ---------------------------------------------------------------------------
 
 class TestParseOutputUpdatesMetaStatus(unittest.TestCase):
@@ -467,7 +488,7 @@ class TestParseOutputUpdatesMetaStatus(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 12: top-level list in AI output accepted
+# Test 13: top-level list in AI output accepted
 # ---------------------------------------------------------------------------
 
 class TestParseOutputTopLevelListAccepted(unittest.TestCase):
@@ -498,7 +519,7 @@ class TestParseOutputTopLevelListAccepted(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 13: quality gate requires silent_topic
+# Test 14: quality gate requires silent_topic
 # ---------------------------------------------------------------------------
 
 class TestQualityGateRequiresSilentTopic(unittest.TestCase):
@@ -516,7 +537,7 @@ class TestQualityGateRequiresSilentTopic(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 14: priority must be integer 1-10
+# Test 15: priority must be integer 1-10
 # ---------------------------------------------------------------------------
 
 class TestPriorityMustBeInteger1To10(unittest.TestCase):
@@ -563,7 +584,7 @@ class TestPriorityMustBeInteger1To10(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 15: expertise_type fallback from meta.json
+# Test 16: expertise_type fallback from meta.json
 # ---------------------------------------------------------------------------
 
 class TestExpertiseTypeFallbackFromMeta(unittest.TestCase):
@@ -610,7 +631,7 @@ class TestExpertiseTypeFallbackFromMeta(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 16: expertise_type defaults to troubleshooter with warning
+# Test 17: expertise_type defaults to troubleshooter with warning
 # ---------------------------------------------------------------------------
 
 class TestExpertiseTypeDefaultWarning(unittest.TestCase):

@@ -42,7 +42,10 @@ def read_expert_blueprint(base_dir: str, slug: str) -> dict | None:
     path = Path(base_dir) / slug / "discovery" / "expert_blueprint.json"
     if not path.exists():
         return None
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"expert_blueprint.json is invalid JSON at {path}: {exc}") from exc
 
 
 def resolve_expertise_type(args_type: str, base_dir: str, slug: str) -> str:
@@ -202,7 +205,11 @@ def main(argv: list[str] | None = None) -> int:
     # Assemble prompt
     name = profile.get("identity", {}).get("name", args.slug)
     profile_json_str = json.dumps(profile, ensure_ascii=False, indent=2)
-    blueprint = read_expert_blueprint(args.base_dir, args.slug)
+    try:
+        blueprint = read_expert_blueprint(args.base_dir, args.slug)
+    except ValueError as exc:
+        print(f"错误：{exc}", file=sys.stderr)
+        return 1
     blueprint_json_str = (
         json.dumps({"expert_blueprint": blueprint}, ensure_ascii=False, indent=2)
         if blueprint is not None
