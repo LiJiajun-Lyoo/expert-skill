@@ -1,0 +1,50 @@
+{
+  "identity_summary": {
+    "name": "王五",
+    "role": "投委会专家",
+    "domain": "投资决策"
+  },
+  "domain_summary": "投资项目评估、风险取舍与投委会决策。",
+  "primary_workflows": [
+    {"name": "项目初筛", "evidence": "profile.known_decisions[0]"},
+    {"name": "投委会表决", "evidence": "profile.known_decisions[1]"}
+  ],
+  "decision_scenarios": [
+    {"scenario": "增长快但现金流弱时是否推进", "evidence": "profile.known_decisions[0]"},
+    {"scenario": "估值偏高但战略协同强时是否推进", "evidence": "profile.known_decisions[1]"},
+    {"scenario": "团队经验不足但窗口期明确时是否推进", "evidence": "profile.suspected_gaps[1]"}
+  ],
+  "knowledge_shape": {
+    "primary": "decision",
+    "secondary": ["review"],
+    "reason": "材料显示专家主要做投资项目评估和风险取舍。"
+  },
+  "reasoning_framework": [
+    {"name": "风险收益权衡", "description": "比较下行风险与战略收益", "evidence": "profile.visible_knowledge[0]"},
+    {"name": "条款控制力判断", "description": "判断风险是否可以通过条款限制", "evidence": "profile.visible_knowledge[2]"}
+  ],
+  "tacit_knowledge_targets": [
+    {"label": "窗口期", "description": "何时接受估值溢价抢占战略窗口", "evidence": "profile.known_decisions[1]"},
+    {"label": "团队可信度", "description": "创始团队缺口如何影响推进或延后", "evidence": "profile.suspected_gaps[1]"},
+    {"label": "退出确定性", "description": "退出路径是否压倒短期增长", "evidence": "profile.suspected_gaps[0]"},
+    {"label": "协同强度", "description": "战略协同对财务指标不足的补偿程度", "evidence": "profile.visible_knowledge[1]"},
+    {"label": "风险可控性", "description": "风险是否可被条款控制", "evidence": "profile.visible_knowledge[2]"}
+  ],
+  "type_match": {
+    "recommended_type": "decision_maker",
+    "confidence": 0.61,
+    "effective_type": "custom",
+    "type_match_overridden": true,
+    "matched_signals": ["投资决策", "风险取舍", "投委会表决"],
+    "rejected_types": [{"type": "operator", "reason": "不是操作 SOP"}]
+  },
+  "generation_strategy": {
+    "mode": "generic",
+    "output_sections": ["适用场景", "核心工作流", "判断框架", "隐性知识目标", "边界条件"],
+    "heuristics_shape": "decision_framework"
+  },
+  "scope_boundaries": [
+    {"boundary": "不替代法律、财务或税务尽调", "evidence": "profile.visible_knowledge[2]"}
+  ],
+  "evidence": ["profile.known_decisions[0]", "profile.known_decisions[1]"]
+}

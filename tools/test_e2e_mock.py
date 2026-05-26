@@ -39,6 +39,8 @@ import skill_writer as sw
 
 MOCK_DIR = Path(__file__).parent.parent / "mock_expert"
 MOCK_DISCOVERY = MOCK_DIR / "discovery"
+UNKNOWN_DIR = Path(__file__).parent.parent / "mock_expert_unknown"
+UNKNOWN_DISCOVERY = UNKNOWN_DIR / "discovery"
 
 
 # ---------------------------------------------------------------------------
@@ -248,6 +250,34 @@ def test_full_chain_meta_status_reaches_merged(tmp_path):
     status = updated_meta["discovery"]["status"]
     assert status in DISCOVERY_STATUSES, f"'{status}' is not in DISCOVERY_STATUSES"
     assert status == "merged"
+
+
+def test_unknown_domain_custom_blueprint_writes_skill(tmp_path):
+    base_dir = str(tmp_path / "skills" / "expert")
+    meta = _load_json(UNKNOWN_DIR / "meta.json")
+    blueprint = _load_json(UNKNOWN_DISCOVERY / "expert_blueprint.json")
+
+    sw.write_expert_skill(
+        base_dir=base_dir,
+        slug="investment-committee",
+        name="投委会专家",
+        expertise_type="custom",
+        expertise_content="",
+        domain_summary="投资项目评估、风险取舍与投委会决策。",
+        meta=meta,
+        blueprint=blueprint,
+    )
+
+    skill_dir = Path(base_dir) / "investment-committee"
+    assert (skill_dir / "SKILL.md").exists()
+    assert (skill_dir / "expertise.md").exists()
+    assert (skill_dir / "heuristics.json").exists()
+    assert (skill_dir / "knowledge_graph.md").exists()
+    expertise = (skill_dir / "expertise.md").read_text(encoding="utf-8")
+    heuristics = json.loads((skill_dir / "heuristics.json").read_text(encoding="utf-8"))
+    assert "投委会表决" in expertise
+    assert heuristics["expertise_type"] == "custom"
+    assert heuristics["blueprint"]["tacit_knowledge_targets"]
 
 
 # ---------------------------------------------------------------------------

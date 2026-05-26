@@ -1,0 +1,55 @@
+{
+  "identity": {
+    "name": "王五",
+    "title": "投委会专家",
+    "domain": "投资决策",
+    "years_in_field": 12
+  },
+  "visible_knowledge": [
+    {
+      "rule": "先看下行风险，再看增长弹性",
+      "source": "investment_notes.md"
+    },
+    {
+      "rule": "战略协同可以补偿短期财务指标不足",
+      "source": "committee_minutes.md"
+    },
+    {
+      "rule": "条款能控制的风险和条款不能控制的风险要分开判断",
+      "source": "interview.md"
+    }
+  ],
+  "known_decisions": [
+    {
+      "case": "A轮项目",
+      "context": "增长快但现金流弱",
+      "decision": "延后",
+      "source": "investment_notes.md"
+    },
+    {
+      "case": "并购项目",
+      "context": "估值高但战略协同强",
+      "decision": "推进",
+      "source": "committee_minutes.md"
+    }
+  ],
+  "domain_context": {
+    "key_challenges": ["信息不对称", "退出路径不确定"],
+    "common_pitfalls": ["只看增长", "忽略条款控制力"],
+    "methodology_clashes": ["财务回报 vs 战略协同"]
+  },
+  "suspected_gaps": [
+    {
+      "gap": "退出路径权重",
+      "reason": "材料多次讨论推进与延后，但没有说明退出确定性如何改变投票"
+    },
+    {
+      "gap": "创始团队可信度阈值",
+      "reason": "投资委员会通常讨论团队风险，材料只记录结论没有记录判断阈值"
+    },
+    {
+      "gap": "估值溢价接受边界",
+      "reason": "材料提到估值高仍推进，但没有说明溢价上限或反转条件"
+    }
+  ]
+}

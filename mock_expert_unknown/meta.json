@@ -1,0 +1,10 @@
+{
+  "name": "投委会专家",
+  "slug": "investment-committee",
+  "expertise_type": "custom",
+  "summary": "投委会专家，擅长投资项目评估、风险取舍与投委会决策",
+  "discovery": {
+    "enabled": true,
+    "status": "blueprint_ready"
+  }
+}
