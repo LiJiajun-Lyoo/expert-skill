@@ -28,7 +28,8 @@ from latent_variable_builder import (
 
 _MINIMAL_TEMPLATE = (
     "Expert: {name} ({expertise_type})\n"
-    "Profile:\n{expert_profile_json}"
+    "Profile:\n{expert_profile_json}\n"
+    "Blueprint:\n{expert_blueprint_json}"
 )
 
 _SAMPLE_PROFILE = {
@@ -86,6 +87,21 @@ def _write_profile(tmp_path: Path, profile: dict = _SAMPLE_PROFILE) -> Path:
     return tmp_path / "skills" / "expert"
 
 
+def _write_blueprint(base_dir: Path, blueprint: dict | None = None) -> Path:
+    if blueprint is None:
+        blueprint = {
+            "tacit_knowledge_targets": [
+                {
+                    "name": "窗口期",
+                    "description": "专家隐性判断问题是否仍处在可逆处理窗口内",
+                }
+            ]
+        }
+    p = base_dir / "zhang-san" / "discovery" / "expert_blueprint.json"
+    p.write_text(json.dumps(blueprint, ensure_ascii=False), encoding="utf-8")
+    return p
+
+
 def _patch_template(path: Path) -> None:
     path.write_text(_MINIMAL_TEMPLATE, encoding="utf-8")
 
@@ -138,7 +154,53 @@ class TestPromptReadsExpertProfileJson(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 3: parse_output saves latent_variables.json on valid pool
+# Test 3: optional expert_blueprint.json seeds prompt
+# ---------------------------------------------------------------------------
+
+class TestPromptReadsExpertBlueprintJson(unittest.TestCase):
+    def setUp(self):
+        self._orig = lvb.PROMPT_TEMPLATE_PATH
+
+    def tearDown(self):
+        lvb.PROMPT_TEMPLATE_PATH = self._orig
+
+    def test_prompt_includes_expert_blueprint_when_available(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            base_dir = _write_profile(tmp_path)
+            _write_blueprint(base_dir)
+
+            tpl = tmp_path / "tpl.md"
+            _patch_template(tpl)
+            lvb.PROMPT_TEMPLATE_PATH = tpl
+
+            rc = main(["--slug", "zhang-san", "--base-dir", str(base_dir)])
+            self.assertEqual(rc, 0)
+
+            prompt_file = base_dir / "zhang-san" / "discovery" / "latent_variable_prompt.md"
+            content = prompt_file.read_text(encoding="utf-8")
+            self.assertIn('"expert_blueprint"', content)
+            self.assertIn("窗口期", content)
+
+    def test_prompt_uses_missing_marker_when_blueprint_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            base_dir = _write_profile(tmp_path)
+
+            tpl = tmp_path / "tpl.md"
+            _patch_template(tpl)
+            lvb.PROMPT_TEMPLATE_PATH = tpl
+
+            rc = main(["--slug", "zhang-san", "--base-dir", str(base_dir)])
+            self.assertEqual(rc, 0)
+
+            prompt_file = base_dir / "zhang-san" / "discovery" / "latent_variable_prompt.md"
+            content = prompt_file.read_text(encoding="utf-8")
+            self.assertIn("（未提供）", content)
+
+
+# ---------------------------------------------------------------------------
+# Test 4: parse_output saves latent_variables.json on valid pool
 # ---------------------------------------------------------------------------
 
 class TestParseOutputSavesJson(unittest.TestCase):

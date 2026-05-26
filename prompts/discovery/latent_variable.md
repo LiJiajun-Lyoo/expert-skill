@@ -19,6 +19,12 @@
 {expert_profile_json}
 （来自 P2 pre_research.md 的输出）
 
+### 可选专家蓝图（expert_blueprint）
+{expert_blueprint_json}
+（来自 expert_blueprint.json；若未提供则显示为 `（未提供）`）
+
+如存在 `expert_blueprint.tacit_knowledge_targets`，请将其中目标优先作为隐性变量候选种子：优先检查这些目标是否能被 `expert_profile` 的具体证据支撑，并将可支撑者转化为标准 `latent_variables` 候选。蓝图只提供候选方向，不能替代证据；最终输出仍必须严格使用下方 `latent_variables` JSON 格式、字段和质量标准。
+
 ---
 
 ## 4 类来源说明

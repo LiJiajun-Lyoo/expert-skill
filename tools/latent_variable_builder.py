@@ -37,6 +37,14 @@ def read_expert_profile(base_dir: str, slug: str) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def read_expert_blueprint(base_dir: str, slug: str) -> dict | None:
+    """Load optional expert_blueprint.json from the discovery directory."""
+    path = Path(base_dir) / slug / "discovery" / "expert_blueprint.json"
+    if not path.exists():
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def resolve_expertise_type(args_type: str, base_dir: str, slug: str) -> str:
     """Resolve expertise_type: CLI arg > meta.json > default 'troubleshooter'."""
     if args_type:
@@ -61,12 +69,14 @@ def assemble_prompt(
     name: str,
     expertise_type: str,
     expert_profile_json: str,
+    expert_blueprint_json: str = "（未提供）",
 ) -> str:
     """Replace {variable} placeholders in the template."""
     replacements = {
         "{name}": name,
         "{expertise_type}": expertise_type,
         "{expert_profile_json}": expert_profile_json,
+        "{expert_blueprint_json}": expert_blueprint_json,
     }
     result = template
     for key, value in replacements.items():
@@ -192,11 +202,18 @@ def main(argv: list[str] | None = None) -> int:
     # Assemble prompt
     name = profile.get("identity", {}).get("name", args.slug)
     profile_json_str = json.dumps(profile, ensure_ascii=False, indent=2)
+    blueprint = read_expert_blueprint(args.base_dir, args.slug)
+    blueprint_json_str = (
+        json.dumps({"expert_blueprint": blueprint}, ensure_ascii=False, indent=2)
+        if blueprint is not None
+        else "（未提供）"
+    )
     prompt = assemble_prompt(
         template=template,
         name=name,
         expertise_type=expertise_type,
         expert_profile_json=profile_json_str,
+        expert_blueprint_json=blueprint_json_str,
     )
 
     if args.dry_run:
