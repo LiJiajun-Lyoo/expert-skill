@@ -101,15 +101,23 @@ def _make_blueprint(
     return {
         "identity_summary": {"name": "王五", "role": "投委会专家", "domain": "投资决策"},
         "domain_summary": "投资委员会项目评估与风险取舍。",
-        "primary_workflows": workflows or [
-            {"name": "项目初筛", "evidence": "profile.visible_knowledge[0]"},
-            {"name": "投委会表决", "evidence": "profile.known_decisions[0]"},
-        ],
-        "decision_scenarios": scenarios or [
-            {"scenario": "增长和现金流冲突时是否继续推进", "evidence": "profile.known_decisions[0]"},
-            {"scenario": "创始团队经验不足但市场窗口明确", "evidence": "profile.known_decisions[1]"},
-            {"scenario": "估值偏高但战略协同强", "evidence": "profile.suspected_gaps[0]"},
-        ],
+        "primary_workflows": (
+            [
+                {"name": "项目初筛", "evidence": "profile.visible_knowledge[0]"},
+                {"name": "投委会表决", "evidence": "profile.known_decisions[0]"},
+            ]
+            if workflows is None
+            else workflows
+        ),
+        "decision_scenarios": (
+            [
+                {"scenario": "增长和现金流冲突时是否继续推进", "evidence": "profile.known_decisions[0]"},
+                {"scenario": "创始团队经验不足但市场窗口明确", "evidence": "profile.known_decisions[1]"},
+                {"scenario": "估值偏高但战略协同强", "evidence": "profile.suspected_gaps[0]"},
+            ]
+            if scenarios is None
+            else scenarios
+        ),
         "knowledge_shape": {
             "primary": "decision",
             "secondary": ["review"],
@@ -118,13 +126,17 @@ def _make_blueprint(
         "reasoning_framework": [
             {"name": "风险收益权衡", "description": "比较下行风险与战略收益", "evidence": "profile.visible_knowledge[0]"}
         ],
-        "tacit_knowledge_targets": tacit_targets or [
-            {"label": "窗口期", "description": "何时接受估值溢价", "evidence": "profile.known_decisions[0]"},
-            {"label": "团队可信度", "description": "创始团队缺口如何影响决策", "evidence": "profile.known_decisions[1]"},
-            {"label": "退出确定性", "description": "退出路径是否压倒短期增长", "evidence": "profile.suspected_gaps[0]"},
-            {"label": "协同强度", "description": "战略协同对财务指标的补偿", "evidence": "profile.visible_knowledge[1]"},
-            {"label": "风险可控性", "description": "风险是否可被条款控制", "evidence": "profile.visible_knowledge[2]"},
-        ],
+        "tacit_knowledge_targets": (
+            [
+                {"label": "窗口期", "description": "何时接受估值溢价", "evidence": "profile.known_decisions[0]"},
+                {"label": "团队可信度", "description": "创始团队缺口如何影响决策", "evidence": "profile.known_decisions[1]"},
+                {"label": "退出确定性", "description": "退出路径是否压倒短期增长", "evidence": "profile.suspected_gaps[0]"},
+                {"label": "协同强度", "description": "战略协同对财务指标的补偿", "evidence": "profile.visible_knowledge[1]"},
+                {"label": "风险可控性", "description": "风险是否可被条款控制", "evidence": "profile.visible_knowledge[2]"},
+            ]
+            if tacit_targets is None
+            else tacit_targets
+        ),
         "type_match": {
             "recommended_type": recommended_type,
             "confidence": confidence,

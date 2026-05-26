@@ -160,8 +160,8 @@ def build_expert_blueprint(
     tacit_knowledge_targets: list[dict],
     type_match: dict,
     generation_strategy: dict,
+    evidence: list[str],
     scope_boundaries: list[dict] | None = None,
-    evidence: list[str] | None = None,
 ) -> dict:
     """Build an expert capability blueprint for blueprint-first creation."""
     return {
@@ -175,7 +175,7 @@ def build_expert_blueprint(
         "type_match": type_match,
         "generation_strategy": generation_strategy,
         "scope_boundaries": scope_boundaries or [],
-        "evidence": evidence or [],
+        "evidence": evidence,
     }
 
 
