@@ -20,6 +20,12 @@
 
 {material_summary}
 
+## 可选专家类型
+
+```json
+{expertise_types_json}
+```
+
 ## 输出要求
 
 只输出一个顶层 JSON 对象，顶层键必须是 `expert_blueprint`。不要输出 Markdown 解释、代码围栏或额外文本。
@@ -33,12 +39,12 @@
 - `knowledge_shape`: object，包含 `primary`、`secondary`、`reason`，说明知识形态。
 - `reasoning_framework`: array，列出显性判断框架，每项包含 `name`、`description`，并尽量包含 `evidence`。
 - `tacit_knowledge_targets`: array，至少 5 项，每项包含 `label`、`description`，并尽量包含 `evidence`。
-- `type_match`: object，包含 `recommended_type`、`confidence`、`matched_signals`、`rejected_types`。
+- `type_match`: object，包含 `recommended_type`、`confidence`、`matched_signals`、`rejected_types`。`recommended_type` 只能从“可选专家类型”中的 `name` 取值，或使用 `custom`。
 - `generation_strategy`: object，包含 `mode`（`preset` 或 `generic`）、`output_sections`、`heuristics_shape`。
 - `scope_boundaries`: array，描述该专家技能不应覆盖的边界。
 - `evidence`: array，列出使用到的 profile 路径或材料证据。
 
-内置类型只是候选项。只有当材料强烈匹配某一内置类型时，才将 `generation_strategy.mode` 设为 `preset`；否则推荐 `custom` 或低置信度匹配，并让系统使用通用生成。
+内置类型只是候选项。只有当材料强烈匹配“可选专家类型”中的某一内置类型时，才将 `generation_strategy.mode` 设为 `preset`；否则将 `recommended_type` 设为 `custom`，并让系统使用通用生成。
 
 ## 输出格式
 

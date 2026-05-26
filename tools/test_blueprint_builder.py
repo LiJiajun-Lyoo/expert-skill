@@ -19,7 +19,7 @@ from blueprint_builder import assemble_prompt, main
 
 _MINIMAL_TEMPLATE = (
     "Name:{name}\nProfile:{expert_profile_json}\n"
-    "Description:{user_description}\nMaterials:{material_summary}"
+    "Description:{user_description}\nMaterials:{material_summary}\nTypes:{expertise_types_json}"
 )
 
 
@@ -99,6 +99,29 @@ class TestPromptAssembly(unittest.TestCase):
         self.assertIn("投委会专家", result)
         self.assertIn("访谈材料摘要", result)
 
+    def test_prompt_assembly_includes_expertise_types(self):
+        result = assemble_prompt(
+            template=_MINIMAL_TEMPLATE,
+            name="王五",
+            expert_profile_json="{}",
+        )
+        self.assertNotIn("{expertise_types_json}", result)
+        self.assertIn("decision_maker", result)
+        self.assertIn("custom", result)
+
+    def test_read_optional_text_labels_each_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            first = tmp_path / "summary-a.md"
+            second = tmp_path / "summary-b.md"
+            first.write_text("第一份摘要", encoding="utf-8")
+            second.write_text("第二份摘要", encoding="utf-8")
+
+            result = bb.read_optional_text([first, second])
+
+            self.assertIn("--- summary-a.md ---\n第一份摘要", result)
+            self.assertIn("--- summary-b.md ---\n第二份摘要", result)
+
 
 class TestBlueprintBuilderMain(unittest.TestCase):
     def setUp(self):
@@ -146,6 +169,63 @@ class TestBlueprintBuilderMain(unittest.TestCase):
             self.assertEqual(meta["discovery"]["blueprint"]["type_match_confidence"], 0.61)
             self.assertTrue(meta["discovery"]["blueprint"]["type_match_overridden"])
             self.assertFalse(meta["discovery"]["blueprint"]["type_forced_by_user"])
+
+    def test_parse_output_preserves_later_meta_status_and_updates_blueprint(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            base_dir = _write_profile(tmp_path)
+            tpl = tmp_path / "tpl.md"
+            tpl.write_text(_MINIMAL_TEMPLATE, encoding="utf-8")
+            bb.PROMPT_TEMPLATE_PATH = tpl
+            meta_path = base_dir / "wang-wu" / "meta.json"
+            meta_path.write_text(
+                json.dumps({"slug": "wang-wu", "discovery": {"status": "variables_ready"}}),
+                encoding="utf-8",
+            )
+            out = tmp_path / "out.json"
+            out.write_text(
+                json.dumps({"expert_blueprint": _valid_blueprint(0.91, "decision_maker")}, ensure_ascii=False),
+                encoding="utf-8",
+            )
+
+            rc = main(["--slug", "wang-wu", "--base-dir", str(base_dir), "--parse-output", str(out)])
+
+            self.assertEqual(rc, 0)
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            self.assertEqual(meta["discovery"]["status"], "variables_ready")
+            self.assertEqual(meta["discovery"]["blueprint"]["effective_type"], "decision_maker")
+            self.assertEqual(meta["discovery"]["blueprint"]["generation_mode"], "preset")
+
+    def test_material_summary_files_are_labelled_in_generated_prompt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            base_dir = _write_profile(tmp_path)
+            tpl = tmp_path / "tpl.md"
+            tpl.write_text(_MINIMAL_TEMPLATE, encoding="utf-8")
+            bb.PROMPT_TEMPLATE_PATH = tpl
+            first = tmp_path / "notes-a.md"
+            second = tmp_path / "notes-b.md"
+            first.write_text("材料 A", encoding="utf-8")
+            second.write_text("材料 B", encoding="utf-8")
+
+            rc = main(
+                [
+                    "--slug",
+                    "wang-wu",
+                    "--base-dir",
+                    str(base_dir),
+                    "--material-summary",
+                    str(first),
+                    str(second),
+                ]
+            )
+
+            self.assertEqual(rc, 0)
+            prompt = (base_dir / "wang-wu" / "discovery" / "expert_blueprint_prompt.md").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn("--- notes-a.md ---\n材料 A", prompt)
+            self.assertIn("--- notes-b.md ---\n材料 B", prompt)
 
     def test_low_confidence_builtin_recommendation_downgrades_to_custom_generic(self):
         resolved = bb._resolve_and_apply_type_match(_valid_blueprint(0.61, "decision_maker"))

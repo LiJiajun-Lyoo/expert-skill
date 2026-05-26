@@ -19,6 +19,7 @@ from discovery_schema import resolve_blueprint_type_match, validate_expert_bluep
 from expertise_presets import list_expertise_types
 
 PROMPT_TEMPLATE_PATH = Path(__file__).parent.parent / "prompts" / "discovery" / "expert_blueprint.md"
+_BLUEPRINT_READY_PRIOR_STATUSES = {"", "not_started", "profile_ready"}
 
 
 def read_expert_profile(base_dir: str, slug: str) -> dict:
@@ -30,8 +31,11 @@ def read_expert_profile(base_dir: str, slug: str) -> dict:
 
 
 def read_optional_text(paths: list[Path]) -> str:
-    """Read optional UTF-8 text files and join them with blank lines."""
-    return "\n\n".join(path.read_text(encoding="utf-8") for path in paths)
+    """Read optional UTF-8 text files as labelled blocks."""
+    parts = []
+    for path in paths:
+        parts.append(f"--- {path.name} ---\n{path.read_text(encoding='utf-8')}")
+    return "\n\n".join(parts)
 
 
 def assemble_prompt(
@@ -40,13 +44,17 @@ def assemble_prompt(
     expert_profile_json: str,
     user_description: str = "",
     material_summary: str = "",
+    expertise_types_json: str = "",
 ) -> str:
     """Replace blueprint prompt placeholders with concrete values."""
+    if not expertise_types_json:
+        expertise_types_json = json.dumps(list_expertise_types(), ensure_ascii=False, indent=2)
     replacements = {
         "{name}": name or "（未填写）",
         "{expert_profile_json}": expert_profile_json or "（未提供）",
         "{user_description}": user_description or "（未填写）",
         "{material_summary}": material_summary or "（未提供）",
+        "{expertise_types_json}": expertise_types_json,
     }
     result = template
     for key, value in replacements.items():
@@ -111,7 +119,14 @@ def _update_meta_json(meta_path: Path, resolved: dict) -> None:
 
     discovery = meta.setdefault("discovery", {})
     discovery["enabled"] = True
-    discovery["status"] = "blueprint_ready"
+    current_status = str(discovery.get("status") or "")
+    if current_status in _BLUEPRINT_READY_PRIOR_STATUSES:
+        discovery["status"] = "blueprint_ready"
+    elif current_status != "blueprint_ready":
+        print(
+            f"警告：当前 discovery.status={current_status}，不回退为 blueprint_ready",
+            file=sys.stderr,
+        )
     discovery["blueprint"] = {
         "path": "discovery/expert_blueprint.json",
         "effective_type": resolved["effective_type"],
@@ -168,6 +183,7 @@ def main(argv: list[str] | None = None) -> int:
         expert_profile_json=expert_profile_json,
         user_description=args.user_description,
         material_summary=read_optional_text(material_paths),
+        expertise_types_json=json.dumps(list_expertise_types(), ensure_ascii=False, indent=2),
     )
 
     if args.dry_run:
@@ -206,7 +222,7 @@ def main(argv: list[str] | None = None) -> int:
         meta_path = Path(args.base_dir) / args.slug / "meta.json"
         if meta_path.exists():
             _update_meta_json(meta_path, resolved)
-            print("[OK] meta.json updated (discovery.enabled=true, discovery.status=blueprint_ready)")
+            print("[OK] meta.json updated (discovery.enabled=true, discovery.blueprint updated)")
         else:
             print("Note: meta.json not found, discovery status not written")
 
