@@ -14,6 +14,7 @@ from pathlib import Path
 DISCOVERY_STATUSES = (
     "not_started",
     "profile_ready",
+    "blueprint_ready",
     "variables_ready",
     "triplets_ready",
     "interview_in_progress",
@@ -149,9 +150,149 @@ def build_triplet_analysis(
     }
 
 
+def build_expert_blueprint(
+    identity_summary: dict,
+    domain_summary: str,
+    primary_workflows: list[dict],
+    decision_scenarios: list[dict],
+    knowledge_shape: dict,
+    reasoning_framework: list[dict],
+    tacit_knowledge_targets: list[dict],
+    type_match: dict,
+    generation_strategy: dict,
+    scope_boundaries: list[dict] | None = None,
+    evidence: list[str] | None = None,
+) -> dict:
+    """Build an expert capability blueprint for blueprint-first creation."""
+    return {
+        "identity_summary": identity_summary,
+        "domain_summary": domain_summary,
+        "primary_workflows": primary_workflows,
+        "decision_scenarios": decision_scenarios,
+        "knowledge_shape": knowledge_shape,
+        "reasoning_framework": reasoning_framework,
+        "tacit_knowledge_targets": tacit_knowledge_targets,
+        "type_match": type_match,
+        "generation_strategy": generation_strategy,
+        "scope_boundaries": scope_boundaries or [],
+        "evidence": evidence or [],
+    }
+
+
 # ---------------------------------------------------------------------------
 # Validation helpers
 # ---------------------------------------------------------------------------
+
+def validate_expert_blueprint(blueprint: dict) -> list[str]:
+    """Validate an expert blueprint dict. Returns a list of error strings."""
+    errors: list[str] = []
+    for field in (
+        "identity_summary",
+        "domain_summary",
+        "primary_workflows",
+        "decision_scenarios",
+        "knowledge_shape",
+        "reasoning_framework",
+        "tacit_knowledge_targets",
+        "type_match",
+        "generation_strategy",
+        "scope_boundaries",
+        "evidence",
+    ):
+        if field not in blueprint:
+            errors.append(f"{field} is required")
+
+    if not isinstance(blueprint.get("identity_summary", {}), dict):
+        errors.append("identity_summary must be a dict")
+    if not blueprint.get("domain_summary"):
+        errors.append("domain_summary is required")
+
+    workflows = blueprint.get("primary_workflows", [])
+    if not isinstance(workflows, list):
+        errors.append("primary_workflows must be a list")
+    elif len(workflows) < 2:
+        errors.append(f"primary_workflows must contain at least 2 items, got {len(workflows)}")
+
+    scenarios = blueprint.get("decision_scenarios", [])
+    if not isinstance(scenarios, list):
+        errors.append("decision_scenarios must be a list")
+    elif len(scenarios) < 3:
+        errors.append(f"decision_scenarios must contain at least 3 items, got {len(scenarios)}")
+
+    targets = blueprint.get("tacit_knowledge_targets", [])
+    if not isinstance(targets, list):
+        errors.append("tacit_knowledge_targets must be a list")
+    elif len(targets) < 5:
+        errors.append(f"tacit_knowledge_targets must contain at least 5 items, got {len(targets)}")
+
+    knowledge_shape = blueprint.get("knowledge_shape", {})
+    if not isinstance(knowledge_shape, dict):
+        errors.append("knowledge_shape must be a dict")
+    elif not knowledge_shape.get("primary"):
+        errors.append("knowledge_shape.primary is required")
+
+    type_match = blueprint.get("type_match", {})
+    if not isinstance(type_match, dict):
+        errors.append("type_match must be a dict")
+    else:
+        if not type_match.get("recommended_type"):
+            errors.append("type_match.recommended_type is required")
+        confidence = type_match.get("confidence")
+        if not isinstance(confidence, (int, float)) or isinstance(confidence, bool):
+            errors.append("type_match.confidence must be a number")
+        elif not (0 <= confidence <= 1):
+            errors.append("type_match.confidence must be between 0 and 1")
+
+    strategy = blueprint.get("generation_strategy", {})
+    if not isinstance(strategy, dict):
+        errors.append("generation_strategy must be a dict")
+    else:
+        if strategy.get("mode") not in ("preset", "generic"):
+            errors.append("generation_strategy.mode must be 'preset' or 'generic'")
+        sections = strategy.get("output_sections", [])
+        if not isinstance(sections, list) or not sections:
+            errors.append("generation_strategy.output_sections must be a non-empty list")
+        if not strategy.get("heuristics_shape"):
+            errors.append("generation_strategy.heuristics_shape is required")
+
+    evidence = blueprint.get("evidence", [])
+    if not isinstance(evidence, list) or not evidence:
+        errors.append("evidence must be a non-empty list")
+    return errors
+
+
+def resolve_blueprint_type_match(
+    blueprint: dict,
+    available_types: list[str],
+    confidence_threshold: float = 0.75,
+) -> dict:
+    """Resolve blueprint type matching into an effective type and generation mode."""
+    type_match = blueprint.get("type_match", {})
+    strategy = blueprint.get("generation_strategy", {})
+    recommended = str(type_match.get("recommended_type", "custom") or "custom")
+    confidence = type_match.get("confidence", 0)
+    if not isinstance(confidence, (int, float)) or isinstance(confidence, bool):
+        confidence = 0
+
+    can_use_preset = (
+        recommended in available_types
+        and recommended != "custom"
+        and confidence >= confidence_threshold
+    )
+    if can_use_preset:
+        return {
+            "effective_type": recommended,
+            "generation_mode": "preset",
+            "type_match_confidence": confidence,
+            "type_match_overridden": False,
+        }
+    return {
+        "effective_type": "custom",
+        "generation_mode": "generic",
+        "type_match_confidence": confidence,
+        "type_match_overridden": recommended != "custom" or strategy.get("mode") != "generic",
+    }
+
 
 def validate_expert_profile(profile: dict) -> list[str]:
     """Validate an expert profile dict. Returns a list of error strings (empty = valid)."""

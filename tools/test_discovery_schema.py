@@ -10,13 +10,16 @@ sys.path.insert(0, os.path.dirname(__file__))
 from discovery_schema import (
     DISCOVERY_STATUSES,
     build_expert_profile,
+    build_expert_blueprint,
     build_latent_variable,
     build_triplet_group,
     build_triplet_analysis,
     validate_expert_profile,
+    validate_expert_blueprint,
     validate_latent_variable,
     validate_triplet_group,
     validate_latent_variables_pool,
+    resolve_blueprint_type_match,
     get_discovery_dir,
     get_discovery_file_path,
 )
@@ -86,19 +89,160 @@ def _make_pool(count=6, high_medium_count=4):
     return pool
 
 
+def _make_blueprint(
+    recommended_type="reviewer",
+    confidence=0.91,
+    mode="preset",
+    workflows=None,
+    scenarios=None,
+    tacit_targets=None,
+    output_sections=None,
+):
+    return {
+        "identity_summary": {"name": "王五", "role": "投委会专家", "domain": "投资决策"},
+        "domain_summary": "投资委员会项目评估与风险取舍。",
+        "primary_workflows": workflows or [
+            {"name": "项目初筛", "evidence": "profile.visible_knowledge[0]"},
+            {"name": "投委会表决", "evidence": "profile.known_decisions[0]"},
+        ],
+        "decision_scenarios": scenarios or [
+            {"scenario": "增长和现金流冲突时是否继续推进", "evidence": "profile.known_decisions[0]"},
+            {"scenario": "创始团队经验不足但市场窗口明确", "evidence": "profile.known_decisions[1]"},
+            {"scenario": "估值偏高但战略协同强", "evidence": "profile.suspected_gaps[0]"},
+        ],
+        "knowledge_shape": {
+            "primary": "decision",
+            "secondary": ["review"],
+            "reason": "材料显示专家主要做风险取舍和项目评估。",
+        },
+        "reasoning_framework": [
+            {"name": "风险收益权衡", "description": "比较下行风险与战略收益", "evidence": "profile.visible_knowledge[0]"}
+        ],
+        "tacit_knowledge_targets": tacit_targets or [
+            {"label": "窗口期", "description": "何时接受估值溢价", "evidence": "profile.known_decisions[0]"},
+            {"label": "团队可信度", "description": "创始团队缺口如何影响决策", "evidence": "profile.known_decisions[1]"},
+            {"label": "退出确定性", "description": "退出路径是否压倒短期增长", "evidence": "profile.suspected_gaps[0]"},
+            {"label": "协同强度", "description": "战略协同对财务指标的补偿", "evidence": "profile.visible_knowledge[1]"},
+            {"label": "风险可控性", "description": "风险是否可被条款控制", "evidence": "profile.visible_knowledge[2]"},
+        ],
+        "type_match": {
+            "recommended_type": recommended_type,
+            "confidence": confidence,
+            "matched_signals": ["评估", "风险", "决策"],
+            "rejected_types": [{"type": "operator", "reason": "不是操作 SOP"}],
+        },
+        "generation_strategy": {
+            "mode": mode,
+            "output_sections": (
+                ["适用场景", "判断框架", "隐性变量", "边界条件"]
+                if output_sections is None
+                else output_sections
+            ),
+            "heuristics_shape": "decision_framework",
+        },
+        "scope_boundaries": [
+            {"boundary": "不替代法律或财务尽调", "evidence": "profile.visible_knowledge[3]"}
+        ],
+        "evidence": ["profile.visible_knowledge[0]", "profile.known_decisions[0]"],
+    }
+
+
 # ---------------------------------------------------------------------------
 # Test: DISCOVERY_STATUSES
 # ---------------------------------------------------------------------------
 
 class TestDiscoveryStatuses(unittest.TestCase):
-    def test_contains_all_nine_statuses(self):
+    def test_contains_all_ten_statuses(self):
         expected = {
-            "not_started", "profile_ready", "variables_ready", "triplets_ready",
+            "not_started", "profile_ready", "blueprint_ready", "variables_ready", "triplets_ready",
             "interview_in_progress", "interview_completed", "analysis_ready",
             "merged", "aborted",
         }
         self.assertEqual(set(DISCOVERY_STATUSES), expected)
-        self.assertEqual(len(DISCOVERY_STATUSES), 9)
+        self.assertEqual(len(DISCOVERY_STATUSES), 10)
+
+    def test_blueprint_ready_follows_profile_ready(self):
+        profile_index = DISCOVERY_STATUSES.index("profile_ready")
+        self.assertEqual(DISCOVERY_STATUSES[profile_index + 1], "blueprint_ready")
+
+
+# ---------------------------------------------------------------------------
+# Test: expert blueprint schema
+# ---------------------------------------------------------------------------
+
+class TestExpertBlueprintSchema(unittest.TestCase):
+    def test_blueprint_ready_is_valid_status(self):
+        self.assertIn("blueprint_ready", DISCOVERY_STATUSES)
+
+    def test_build_expert_blueprint(self):
+        blueprint = build_expert_blueprint(
+            identity_summary={"name": "王五", "role": "投委会专家", "domain": "投资决策"},
+            domain_summary="投资委员会项目评估与风险取舍。",
+            primary_workflows=[
+                {"name": "项目初筛", "evidence": "profile.visible_knowledge[0]"},
+                {"name": "投委会表决", "evidence": "profile.known_decisions[0]"},
+            ],
+            decision_scenarios=[
+                {"scenario": "增长和现金流冲突时是否继续推进"},
+                {"scenario": "创始团队经验不足但市场窗口明确"},
+                {"scenario": "估值偏高但战略协同强"},
+            ],
+            knowledge_shape={"primary": "decision", "secondary": ["review"]},
+            reasoning_framework=[{"name": "风险收益权衡"}],
+            tacit_knowledge_targets=[
+                {"label": "窗口期"},
+                {"label": "团队可信度"},
+                {"label": "退出确定性"},
+                {"label": "协同强度"},
+                {"label": "风险可控性"},
+            ],
+            type_match={"recommended_type": "reviewer", "confidence": 0.91},
+            generation_strategy={
+                "mode": "preset",
+                "output_sections": ["适用场景", "判断框架"],
+                "heuristics_shape": "decision_framework",
+            },
+            evidence=["profile.visible_knowledge[0]"],
+        )
+        self.assertEqual(validate_expert_blueprint(blueprint), [])
+
+    def test_valid_expert_blueprint_passes(self):
+        errors = validate_expert_blueprint(_make_blueprint())
+        self.assertEqual(errors, [])
+
+    def test_blueprint_requires_two_workflows(self):
+        errors = validate_expert_blueprint(_make_blueprint(workflows=[{"name": "项目初筛"}]))
+        self.assertTrue(any("primary_workflows" in e for e in errors))
+
+    def test_blueprint_requires_three_decision_scenarios(self):
+        errors = validate_expert_blueprint(_make_blueprint(scenarios=[{"scenario": "仅一个场景"}]))
+        self.assertTrue(any("decision_scenarios" in e for e in errors))
+
+    def test_blueprint_requires_five_tacit_targets(self):
+        errors = validate_expert_blueprint(_make_blueprint(tacit_targets=[{"label": "窗口期"}]))
+        self.assertTrue(any("tacit_knowledge_targets" in e for e in errors))
+
+    def test_blueprint_requires_output_sections(self):
+        errors = validate_expert_blueprint(_make_blueprint(output_sections=[]))
+        self.assertTrue(any("generation_strategy.output_sections" in e for e in errors))
+
+    def test_high_confidence_existing_type_uses_preset(self):
+        resolved = resolve_blueprint_type_match(_make_blueprint("reviewer", 0.9), ["reviewer", "custom"])
+        self.assertEqual(resolved["effective_type"], "reviewer")
+        self.assertEqual(resolved["generation_mode"], "preset")
+        self.assertFalse(resolved["type_match_overridden"])
+
+    def test_low_confidence_downgrades_to_custom(self):
+        resolved = resolve_blueprint_type_match(_make_blueprint("reviewer", 0.62), ["reviewer", "custom"])
+        self.assertEqual(resolved["effective_type"], "custom")
+        self.assertEqual(resolved["generation_mode"], "generic")
+        self.assertTrue(resolved["type_match_overridden"])
+
+    def test_missing_preset_downgrades_to_custom(self):
+        resolved = resolve_blueprint_type_match(_make_blueprint("negotiation", 0.91), ["reviewer", "custom"])
+        self.assertEqual(resolved["effective_type"], "custom")
+        self.assertEqual(resolved["generation_mode"], "generic")
+        self.assertTrue(resolved["type_match_overridden"])
 
 
 # ---------------------------------------------------------------------------
