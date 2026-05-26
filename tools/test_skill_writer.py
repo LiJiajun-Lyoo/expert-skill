@@ -271,6 +271,35 @@ def test_medical_expertise_types_are_first_class_presets():
     assert types["medical_safety_reviewer"]["knowledge_format"] == "medical_safety_checklist"
 
 
+def test_custom_expertise_type_is_first_class_preset():
+    types = {item["name"]: item for item in sw.list_expertise_types()}
+
+    assert "custom" in types
+    assert types["custom"]["knowledge_format"] == "blueprint_driven"
+    assert types["custom"]["description"]
+
+
+def test_create_custom_expert_without_type_specific_templates(tmp_path):
+    base_dir, skill_dir = create_skill(
+        tmp_path,
+        slug="investment-committee",
+        name="投委会专家",
+        expertise_type="custom",
+        domain_summary="投资项目评估、风险取舍与投委会决策。",
+    )
+
+    meta = json.loads((skill_dir / "meta.json").read_text(encoding="utf-8"))
+    manifest = json.loads((skill_dir / "manifest.json").read_text(encoding="utf-8"))
+    heuristics = json.loads((skill_dir / "heuristics.json").read_text(encoding="utf-8"))
+
+    assert base_dir.endswith("skills/expert")
+    assert meta["expertise_type"] == "custom"
+    assert meta["preset"] == "expert.custom.v1"
+    assert manifest["expertise_type"] == "custom"
+    assert heuristics["knowledge_format"] == "blueprint_driven"
+    assert "prompts/expertise/custom" not in json.dumps(manifest, ensure_ascii=False)
+
+
 def test_create_medical_expert_uses_medical_type_without_legacy_mapping(tmp_path):
     base_dir, skill_dir = create_skill(
         tmp_path,
