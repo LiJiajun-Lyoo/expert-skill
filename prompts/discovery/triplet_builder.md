@@ -29,6 +29,14 @@
 {known_decisions_json}
 （来自 expert_profile.json 的 known_decisions 字段，用于保证生态效度）
 
+### 专家能力蓝图（可选）
+{expert_blueprint_json}
+
+### 蓝图决策场景（优先用于生态效度）
+{decision_scenarios_json}
+
+如果提供了蓝图，请优先使用 `decision_scenarios` 和 `primary_workflows` 设计 A/B/C 场景；如果未提供，继续使用 known_decisions 和 domain_context。
+
 ---
 
 ## 5 种生成约束

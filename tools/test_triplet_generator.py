@@ -145,6 +145,19 @@ def _write_inputs(tmp_path: Path, variables=None, profile=None) -> Path:
     return base_dir
 
 
+def _write_blueprint(base_dir: Path, slug="zhang-san") -> None:
+    blueprint = {
+        "primary_workflows": [{"name": "投委会表决"}, {"name": "项目初筛"}],
+        "decision_scenarios": [
+            {"scenario": "增长快但现金流弱时是否推进"},
+            {"scenario": "估值偏高但战略协同强时是否推进"},
+            {"scenario": "团队经验不足但窗口期明确时是否推进"},
+        ],
+    }
+    path = base_dir / slug / "discovery" / "expert_blueprint.json"
+    path.write_text(json.dumps(blueprint, ensure_ascii=False), encoding="utf-8")
+
+
 def _patch_template(tmp_path: Path) -> Path:
     tpl = tmp_path / "tpl.md"
     tpl.write_text(_MINIMAL_TEMPLATE, encoding="utf-8")
@@ -169,7 +182,73 @@ class TestPromptAssemblyNoLeftover(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 2: only high/medium testability in target_variables
+# Test 2: optional expert blueprint in prompt
+# ---------------------------------------------------------------------------
+
+class TestBlueprintScenariosInPrompt(unittest.TestCase):
+    def setUp(self):
+        self._orig = tg.PROMPT_TEMPLATE_PATH
+
+    def tearDown(self):
+        tg.PROMPT_TEMPLATE_PATH = self._orig
+
+    def test_prompt_includes_blueprint_scenarios_when_available(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            base_dir = _write_inputs(tmp_path)
+            _write_blueprint(base_dir)
+            tpl = tmp_path / "tpl.md"
+            tpl.write_text(
+                "Blueprint:{expert_blueprint_json}\nScenarios:{decision_scenarios_json}",
+                encoding="utf-8",
+            )
+            tg.PROMPT_TEMPLATE_PATH = tpl
+
+            rc = main(["--slug", "zhang-san", "--base-dir", str(base_dir)])
+
+            self.assertEqual(rc, 0)
+            content = (base_dir / "zhang-san" / "discovery" / "triplet_builder_prompt.md").read_text(encoding="utf-8")
+            self.assertIn("投委会表决", content)
+            self.assertIn("增长快但现金流弱", content)
+            self.assertIn('"expert_blueprint"', content)
+
+    def test_prompt_uses_empty_scenarios_when_blueprint_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            base_dir = _write_inputs(tmp_path)
+            tpl = tmp_path / "tpl.md"
+            tpl.write_text("Scenarios:{decision_scenarios_json}", encoding="utf-8")
+            tg.PROMPT_TEMPLATE_PATH = tpl
+
+            rc = main(["--slug", "zhang-san", "--base-dir", str(base_dir)])
+
+            self.assertEqual(rc, 0)
+            content = (base_dir / "zhang-san" / "discovery" / "triplet_builder_prompt.md").read_text(encoding="utf-8")
+            self.assertIn("[]", content)
+
+    def test_malformed_expert_blueprint_returns_nonzero(self):
+        import contextlib
+        import io
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            base_dir = _write_inputs(tmp_path)
+            blueprint_path = base_dir / "zhang-san" / "discovery" / "expert_blueprint.json"
+            blueprint_path.write_text("{invalid json", encoding="utf-8")
+            tpl = tmp_path / "tpl.md"
+            tpl.write_text("Blueprint:{expert_blueprint_json}", encoding="utf-8")
+            tg.PROMPT_TEMPLATE_PATH = tpl
+
+            stderr_capture = io.StringIO()
+            with contextlib.redirect_stderr(stderr_capture):
+                rc = main(["--slug", "zhang-san", "--base-dir", str(base_dir)])
+
+            self.assertNotEqual(rc, 0)
+            self.assertIn("expert_blueprint.json", stderr_capture.getvalue())
+
+
+# ---------------------------------------------------------------------------
+# Test 3: only high/medium testability in target_variables
 # ---------------------------------------------------------------------------
 
 class TestFiltersHighMediumTestabilityOnly(unittest.TestCase):
@@ -207,7 +286,7 @@ class TestFiltersHighMediumTestabilityOnly(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 3: --target-ids filter
+# Test 4: --target-ids filter
 # ---------------------------------------------------------------------------
 
 class TestTargetIdsFilter(unittest.TestCase):
@@ -222,7 +301,7 @@ class TestTargetIdsFilter(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 4: parse_output saves triplet_groups.json
+# Test 5: parse_output saves triplet_groups.json
 # ---------------------------------------------------------------------------
 
 class TestParseOutputSavesJson(unittest.TestCase):
@@ -252,7 +331,7 @@ class TestParseOutputSavesJson(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 5: schema validation rejects missing probes
+# Test 6: schema validation rejects missing probes
 # ---------------------------------------------------------------------------
 
 class TestSchemaValidationRejectsMissingProbes(unittest.TestCase):
@@ -281,7 +360,7 @@ class TestSchemaValidationRejectsMissingProbes(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 6: P4 gate requires coverage per candidate
+# Test 7: P4 gate requires coverage per candidate
 # ---------------------------------------------------------------------------
 
 class TestP4GateRequiresCoveragePerCandidate(unittest.TestCase):
@@ -299,7 +378,7 @@ class TestP4GateRequiresCoveragePerCandidate(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 7: compute_ab_overlap high similarity
+# Test 8: compute_ab_overlap high similarity
 # ---------------------------------------------------------------------------
 
 class TestComputeAbOverlapHighSimilarity(unittest.TestCase):
@@ -315,7 +394,7 @@ class TestComputeAbOverlapHighSimilarity(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 8: compute_ab_overlap low similarity
+# Test 9: compute_ab_overlap low similarity
 # ---------------------------------------------------------------------------
 
 class TestComputeAbOverlapLowSimilarity(unittest.TestCase):
@@ -331,7 +410,7 @@ class TestComputeAbOverlapLowSimilarity(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 9: overlap < 0.70 without override blocks save
+# Test 10: overlap < 0.70 without override blocks save
 # ---------------------------------------------------------------------------
 
 class TestOverlapBelowThresholdBlocksWithoutOverride(unittest.TestCase):
@@ -368,7 +447,7 @@ class TestOverlapBelowThresholdBlocksWithoutOverride(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Test 10: manual_override cannot suppress the hard overlap gate
+# Test 11: manual_override cannot suppress the hard overlap gate
 # ---------------------------------------------------------------------------
 
 class TestManualOverrideSuppressesError(unittest.TestCase):

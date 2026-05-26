@@ -44,6 +44,17 @@ def read_expert_profile(base_dir: str, slug: str) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def read_expert_blueprint(base_dir: str, slug: str) -> dict | None:
+    """Load optional expert_blueprint.json from the discovery directory."""
+    path = Path(base_dir) / slug / "discovery" / "expert_blueprint.json"
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"expert_blueprint.json is invalid JSON at {path}: {exc}") from exc
+
+
 def filter_target_variables(
     variables: list[dict],
     target_ids: list[str] | None = None,
@@ -81,6 +92,8 @@ def assemble_prompt(
     expert_profile_json: str,
     domain_context_json: str,
     known_decisions_json: str,
+    expert_blueprint_json: str = "（未提供）",
+    decision_scenarios_json: str = "[]",
 ) -> str:
     """Replace all {variable} placeholders in the template."""
     replacements = {
@@ -91,6 +104,8 @@ def assemble_prompt(
         "{expert_profile_json}": expert_profile_json,
         "{domain_context_json}": domain_context_json,
         "{known_decisions_json}": known_decisions_json,
+        "{expert_blueprint_json}": expert_blueprint_json,
+        "{decision_scenarios_json}": decision_scenarios_json,
     }
     result = template
     for key, value in replacements.items():
@@ -371,6 +386,21 @@ def main(argv: list[str] | None = None) -> int:
     name = identity.get("name", args.slug)
     domain = identity.get("domain", "")
     expertise_type = resolve_expertise_type(args.base_dir, args.slug)
+    try:
+        blueprint = read_expert_blueprint(args.base_dir, args.slug)
+    except ValueError as exc:
+        print(f"错误：{exc}", file=sys.stderr)
+        return 1
+    expert_blueprint_json = (
+        json.dumps({"expert_blueprint": blueprint}, ensure_ascii=False, indent=2)
+        if blueprint is not None
+        else "（未提供）"
+    )
+    decision_scenarios_json = json.dumps(
+        (blueprint or {}).get("decision_scenarios", []),
+        ensure_ascii=False,
+        indent=2,
+    )
 
     # Assemble prompt
     prompt = assemble_prompt(
@@ -382,6 +412,8 @@ def main(argv: list[str] | None = None) -> int:
         expert_profile_json=json.dumps(profile, ensure_ascii=False, indent=2),
         domain_context_json=json.dumps(profile.get("domain_context", {}), ensure_ascii=False, indent=2),
         known_decisions_json=json.dumps(profile.get("known_decisions", []), ensure_ascii=False, indent=2),
+        expert_blueprint_json=expert_blueprint_json,
+        decision_scenarios_json=decision_scenarios_json,
     )
 
     if args.dry_run:
