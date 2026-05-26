@@ -16,6 +16,11 @@ import sys
 from pathlib import Path
 
 from expertise_presets import get_expertise_preset, normalize_expertise_type, list_expertise_types
+from generic_skill_renderer import (
+    render_generic_expertise,
+    render_generic_heuristics,
+    render_generic_knowledge_graph,
+)
 from skill_schema import (
     PRIMARY_ARTIFACTS,
     SCHEMA_VERSION,
@@ -65,6 +70,7 @@ user-invocable: true
 """
 
 _LATENT_SECTION_HEADER = "## 隐性知识增强"
+_BLUEPRINT_SECTION_HEADER = "## 专家能力蓝图"
 _VARIABLE_TYPES = {"变量", "variable", "latent_variable"}
 
 
@@ -293,6 +299,16 @@ def _apply_latent_section(expertise_content: str, discovery_meta: dict | None) -
     return base_content + generate_latent_expertise_section(discovery_meta)
 
 
+def _apply_blueprint_section(expertise_content: str, blueprint: dict | None) -> str:
+    """Refresh the generic blueprint expertise section in expertise_content."""
+    if blueprint is None:
+        return expertise_content
+    base_content = expertise_content
+    if _BLUEPRINT_SECTION_HEADER in expertise_content:
+        base_content = expertise_content.split(_BLUEPRINT_SECTION_HEADER, 1)[0].rstrip()
+    return render_generic_expertise(base_content, blueprint)
+
+
 def _apply_discovery_meta_fields(
     meta: dict,
     latent_report: str | None,
@@ -310,6 +326,34 @@ def _apply_discovery_meta_fields(
         d["transcript_generated"] = True
     if discovery_meta is not None:
         d["analysis_completed"] = True
+
+
+def _apply_blueprint_meta_fields(meta: dict, blueprint: dict | None) -> None:
+    """Update meta.discovery with blueprint routing details."""
+    if blueprint is None:
+        return
+
+    d = meta.setdefault("discovery", {})
+    d["enabled"] = True
+
+    type_match = blueprint.get("type_match", {})
+    strategy = blueprint.get("generation_strategy", {})
+    effective_type = type_match.get("effective_type") or type_match.get("recommended_type")
+    d["blueprint"] = {
+        "effective_type": effective_type or meta.get("expertise_type", "custom"),
+        "generation_mode": strategy.get("mode", "generic"),
+        "type_match_confidence": type_match.get("confidence", 0),
+        "type_match_overridden": type_match.get("type_match_overridden", False),
+        "type_forced_by_user": False,
+    }
+
+
+def _use_generic_blueprint(expertise_type: str, blueprint: dict | None) -> bool:
+    """Return True when P7 should render generic/custom artifacts."""
+    if blueprint is None:
+        return False
+    strategy = blueprint.get("generation_strategy", {})
+    return expertise_type == "custom" or strategy.get("mode") == "generic"
 
 
 def _write_latent_artifacts(
@@ -364,6 +408,7 @@ def write_expert_skill(
     latent_report: str | None = None,
     interview_transcript: str | None = None,
     discovery_meta: dict | None = None,
+    blueprint: dict | None = None,
 ) -> str:
     """Write all artifacts for an expert skill. Returns the output directory path."""
     if meta is None:
@@ -373,11 +418,16 @@ def write_expert_skill(
     preset = get_expertise_preset(expertise_type)
     artifacts = meta["artifacts"]
 
+    use_generic_blueprint = _use_generic_blueprint(expertise_type, blueprint)
+    if use_generic_blueprint:
+        expertise_content = _apply_blueprint_section(expertise_content, blueprint)
+
     # Apply latent section to expertise_content before writing any file
     expertise_content = _apply_latent_section(expertise_content, discovery_meta)
 
     # Update meta discovery fields
     _apply_discovery_meta_fields(meta, latent_report, interview_transcript, discovery_meta)
+    _apply_blueprint_meta_fields(meta, blueprint)
 
     skill_dir = Path(base_dir) / slug
     skill_dir.mkdir(parents=True, exist_ok=True)
@@ -399,18 +449,24 @@ def write_expert_skill(
     (skill_dir / "expertise.md").write_text(expertise_content, encoding="utf-8")
 
     # knowledge_graph.md
-    kg_content = generate_knowledge_graph_md(name, preset, discovery_meta)
+    if use_generic_blueprint:
+        kg_content = render_generic_knowledge_graph(name, preset, blueprint)
+    else:
+        kg_content = generate_knowledge_graph_md(name, preset, discovery_meta)
     (skill_dir / "knowledge_graph.md").write_text(kg_content, encoding="utf-8")
 
     # heuristics.json
-    heuristics: dict = {
-        "expert": name,
-        "expertise_type": expertise_type,
-        "knowledge_format": preset["knowledge_format"],
-        "execution_model": preset["execution_model"],
-        "sections": preset["knowledge_sections"],
-        "rules": [],
-    }
+    if use_generic_blueprint:
+        heuristics = render_generic_heuristics(name, expertise_type, preset, blueprint)
+    else:
+        heuristics = {
+            "expert": name,
+            "expertise_type": expertise_type,
+            "knowledge_format": preset["knowledge_format"],
+            "execution_model": preset["execution_model"],
+            "sections": preset["knowledge_sections"],
+            "rules": [],
+        }
     if discovery_meta is not None:
         _update_heuristics_with_latent(skill_dir, heuristics, discovery_meta)
     else:
@@ -444,6 +500,7 @@ def update_expert_skill(
     latent_report: str | None = None,
     interview_transcript: str | None = None,
     discovery_meta: dict | None = None,
+    blueprint: dict | None = None,
 ) -> str:
     """Update an existing expert skill. Returns the output directory path."""
     skill_dir = Path(base_dir) / slug
@@ -471,9 +528,19 @@ def update_expert_skill(
 
     # Apply discovery meta fields to meta
     _apply_discovery_meta_fields(meta, latent_report, interview_transcript, discovery_meta)
+    _apply_blueprint_meta_fields(meta, blueprint)
+
+    name = meta.get("display_name", slug)
+    expertise_type = meta.get("expertise_type", "troubleshooter")
+    preset = get_expertise_preset(expertise_type)
+    use_generic_blueprint = _use_generic_blueprint(expertise_type, blueprint)
 
     # Determine if we need to rewrite content files
-    need_rewrite_content = (expertise_content is not None) or (discovery_meta is not None)
+    need_rewrite_content = (
+        (expertise_content is not None)
+        or (discovery_meta is not None)
+        or use_generic_blueprint
+    )
 
     if need_rewrite_content:
         effective_content = expertise_content
@@ -483,6 +550,9 @@ def update_expert_skill(
                 existing_path.read_text(encoding="utf-8") if existing_path.exists() else ""
             )
 
+        if use_generic_blueprint:
+            effective_content = _apply_blueprint_section(effective_content, blueprint)
+
         # Apply latent section (shared helper — same logic as create path)
         effective_content = _apply_latent_section(effective_content, discovery_meta)
 
@@ -490,7 +560,6 @@ def update_expert_skill(
         (skill_dir / "expertise.md").write_text(effective_content, encoding="utf-8")
 
         # Rebuild SKILL.md
-        name = meta.get("display_name", slug)
         identity = build_identity_string(meta)
         artifacts = meta.get("artifacts", {})
         description = meta.get("summary", name)
@@ -510,23 +579,36 @@ def update_expert_skill(
     # Optional discovery artifacts
     _write_latent_artifacts(skill_dir, latent_report, interview_transcript)
 
-    # Update heuristics.json and knowledge_graph.md if discovery_meta provided
-    if discovery_meta is not None:
+    # Update heuristics.json and knowledge_graph.md if discovery_meta or blueprint provided
+    if discovery_meta is not None or use_generic_blueprint:
         heuristics_path = skill_dir / "heuristics.json"
-        try:
-            heuristics = json.loads(heuristics_path.read_text(encoding="utf-8")) if heuristics_path.exists() else {}
-        except (json.JSONDecodeError, OSError):
-            heuristics = {}
-        _update_heuristics_with_latent(skill_dir, heuristics, discovery_meta)
+        if use_generic_blueprint:
+            heuristics = render_generic_heuristics(name, expertise_type, preset, blueprint)
+        else:
+            try:
+                heuristics = json.loads(heuristics_path.read_text(encoding="utf-8")) if heuristics_path.exists() else {}
+            except (json.JSONDecodeError, OSError):
+                heuristics = {}
+        if discovery_meta is not None:
+            _update_heuristics_with_latent(skill_dir, heuristics, discovery_meta)
+        else:
+            heuristics_path.write_text(
+                json.dumps(heuristics, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
 
-        name = meta.get("display_name", slug)
-        expertise_type = meta.get("expertise_type", "troubleshooter")
-        preset = get_expertise_preset(expertise_type)
-        kg_content = generate_knowledge_graph_md(name, preset, discovery_meta)
+        if use_generic_blueprint:
+            kg_content = render_generic_knowledge_graph(name, preset, blueprint)
+        else:
+            kg_content = generate_knowledge_graph_md(name, preset, discovery_meta)
         (skill_dir / "knowledge_graph.md").write_text(kg_content, encoding="utf-8")
 
     # Rebuild manifest if any discovery params were provided
-    if latent_report is not None or interview_transcript is not None or discovery_meta is not None:
+    if (
+        latent_report is not None
+        or interview_transcript is not None
+        or discovery_meta is not None
+        or blueprint is not None
+    ):
         if "artifacts" not in meta:
             meta["artifacts"] = build_artifact_names(meta)
         manifest = build_manifest(meta)
@@ -564,7 +646,7 @@ def list_experts(base_dir: str) -> list[dict]:
     return result
 
 
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(description="Enterprise Expert Skill Writer")
     parser.add_argument("--action", choices=["create", "update", "list"])
     parser.add_argument("--slug", help="Skill slug (e.g. zhang-san)")
@@ -585,7 +667,9 @@ def main():
                         help="Path to interview_transcript.md to embed in skill directory")
     parser.add_argument("--discovery-meta", default="",
                         help="Path to interview_analysis.json for heuristics/knowledge_graph enrichment")
-    args = parser.parse_args()
+    parser.add_argument("--blueprint", default="",
+                        help="Path to expert_blueprint.json for generic/custom rendering")
+    args = parser.parse_args(argv)
 
     if args.list_types:
         print(json.dumps(list_expertise_types(), ensure_ascii=False, indent=2))
@@ -627,6 +711,10 @@ def main():
     if args.discovery_meta:
         discovery_meta = json.loads(Path(args.discovery_meta).read_text(encoding="utf-8"))
 
+    blueprint: dict | None = None
+    if args.blueprint:
+        blueprint = json.loads(Path(args.blueprint).read_text(encoding="utf-8"))
+
     if args.action == "create":
         out_dir = write_expert_skill(
             base_dir=args.base_dir,
@@ -639,6 +727,7 @@ def main():
             latent_report=latent_report,
             interview_transcript=interview_transcript,
             discovery_meta=discovery_meta,
+            blueprint=blueprint,
         )
         print(f"Expert skill created at: {out_dir}")
 
@@ -651,6 +740,7 @@ def main():
             latent_report=latent_report,
             interview_transcript=interview_transcript,
             discovery_meta=discovery_meta,
+            blueprint=blueprint,
         )
         print(f"Expert skill updated at: {out_dir}")
 

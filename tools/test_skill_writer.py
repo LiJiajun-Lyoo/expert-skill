@@ -77,6 +77,34 @@ SAMPLE_DISCOVERY_META_WITH_RULE_REFS = {
     "report_sections": {},
 }
 
+SAMPLE_BLUEPRINT = {
+    "identity_summary": {"name": "王五", "role": "投委会专家", "domain": "投资决策"},
+    "domain_summary": "投资项目评估与投委会决策。",
+    "primary_workflows": [{"name": "项目初筛"}, {"name": "投委会表决"}],
+    "decision_scenarios": [
+        {"scenario": "增长和现金流冲突"},
+        {"scenario": "估值和协同冲突"},
+        {"scenario": "团队和窗口期冲突"},
+    ],
+    "knowledge_shape": {"primary": "decision", "secondary": ["review"], "reason": "投资取舍"},
+    "reasoning_framework": [{"name": "风险收益权衡", "description": "比较收益和下行"}],
+    "tacit_knowledge_targets": [
+        {"label": "窗口期", "description": "何时抢窗口"},
+        {"label": "团队可信度", "description": "团队风险如何定价"},
+        {"label": "退出确定性", "description": "退出路径权重"},
+        {"label": "协同强度", "description": "战略协同补偿"},
+        {"label": "风险可控性", "description": "条款是否能控风险"},
+    ],
+    "type_match": {"recommended_type": "decision_maker", "confidence": 0.61, "effective_type": "custom"},
+    "generation_strategy": {
+        "mode": "generic",
+        "output_sections": ["适用场景", "核心工作流", "判断框架", "隐性知识目标", "边界条件"],
+        "heuristics_shape": "decision_framework",
+    },
+    "scope_boundaries": [{"boundary": "不替代法律尽调"}],
+    "evidence": ["profile.known_decisions[0]"],
+}
+
 
 def create_skill(tmp_path, slug="test-expert", **kwargs):
     """Helper: create a skill in tmp_path and return (base_dir, skill_dir)."""
@@ -298,6 +326,55 @@ def test_create_custom_expert_without_type_specific_templates(tmp_path):
     assert manifest["expertise_type"] == "custom"
     assert heuristics["knowledge_format"] == "blueprint_driven"
     assert "prompts/expertise/custom" not in json.dumps(manifest, ensure_ascii=False)
+
+
+def test_create_custom_expert_from_blueprint_generates_generic_artifacts(tmp_path):
+    base_dir, skill_dir = create_skill(
+        tmp_path,
+        slug="investment-committee",
+        name="投委会专家",
+        expertise_type="custom",
+        expertise_content="",
+        domain_summary="投资项目评估。",
+        blueprint=SAMPLE_BLUEPRINT,
+    )
+
+    expertise = (skill_dir / "expertise.md").read_text(encoding="utf-8")
+    kg = (skill_dir / "knowledge_graph.md").read_text(encoding="utf-8")
+    heuristics = json.loads((skill_dir / "heuristics.json").read_text(encoding="utf-8"))
+    meta = json.loads((skill_dir / "meta.json").read_text(encoding="utf-8"))
+
+    assert base_dir.endswith("skills/expert")
+    assert "## 专家能力蓝图" in expertise
+    assert "项目初筛" in expertise
+    assert "窗口期" in expertise
+    assert "## 蓝图工作流" in kg
+    assert heuristics["knowledge_format"] == "blueprint_driven"
+    assert heuristics["blueprint"]["knowledge_shape"]["primary"] == "decision"
+    assert meta["discovery"]["blueprint"]["effective_type"] == "custom"
+    assert meta["discovery"]["blueprint"]["generation_mode"] == "generic"
+
+
+def test_blueprint_cli_reads_json_file(tmp_path):
+    blueprint_file = tmp_path / "blueprint.json"
+    blueprint_file.write_text(json.dumps(SAMPLE_BLUEPRINT, ensure_ascii=False), encoding="utf-8")
+    expertise_file = tmp_path / "expertise.md"
+    expertise_file.write_text("", encoding="utf-8")
+    base_dir = tmp_path / "skills" / "expert"
+
+    rc = sw.main([
+        "--action", "create",
+        "--slug", "investment-committee",
+        "--name", "投委会专家",
+        "--expertise-type", "custom",
+        "--expertise-content", str(expertise_file),
+        "--blueprint", str(blueprint_file),
+        "--base-dir", str(base_dir),
+    ])
+
+    assert rc is None
+    expertise = (base_dir / "investment-committee" / "expertise.md").read_text(encoding="utf-8")
+    assert "专家能力蓝图" in expertise
 
 
 def test_create_medical_expert_uses_medical_type_without_legacy_mapping(tmp_path):
