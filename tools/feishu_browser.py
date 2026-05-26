@@ -23,6 +23,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 import time
 import json
@@ -40,7 +41,6 @@ def get_default_chrome_profile() -> str:
     elif system == "Linux":
         return str(Path.home() / ".config/google-chrome/Default")
     elif system == "Windows":
-        import os
         return str(Path(os.environ.get("LOCALAPPDATA", "")) / "Google/Chrome/User Data/Default")
     return str(Path.home() / ".config/google-chrome/Default")
 
