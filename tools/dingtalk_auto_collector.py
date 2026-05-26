@@ -27,10 +27,12 @@
 from __future__ import annotations
 
 import json
+import os
+import platform
+import re
 import sys
 import time
 import argparse
-import platform
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Optional
@@ -365,6 +367,27 @@ def collect_docs(user: dict, doc_limit: int, config: dict) -> str:
 
 # ─── 多维表格 ─────────────────────────────────────────────────────────────────
 
+def _render_bitable_table(fields: list, records: list) -> list[str]:
+    """Render bitable fields + records as markdown table rows."""
+    lines: list[str] = []
+    if fields:
+        lines.append("| " + " | ".join(fields) + " |")
+        lines.append("| " + " | ".join(["---"] * len(fields)) + " |")
+    for rec in records:
+        row_data = rec.get("fields", {})
+        row = []
+        for f in fields:
+            val = row_data.get(f, "")
+            if isinstance(val, list):
+                val = " ".join(
+                    v.get("text", str(v)) if isinstance(v, dict) else str(v)
+                    for v in val
+                )
+            row.append(str(val).replace("|", "｜").replace("\n", " "))
+        lines.append("| " + " | ".join(row) + " |")
+    return lines
+
+
 def search_bitables(user_id: str, name: str, config: dict) -> list:
     """搜索目标用户的多维表格"""
     print(f"  搜索 {name} 的多维表格 ...", file=sys.stderr)
@@ -424,24 +447,7 @@ def fetch_bitable_content(base_id: str, config: dict) -> str:
 
         lines.append(f"### 表：{sheet_name}")
         lines.append("")
-
-        if fields:
-            lines.append("| " + " | ".join(fields) + " |")
-            lines.append("| " + " | ".join(["---"] * len(fields)) + " |")
-
-        for rec in records:
-            row_data = rec.get("fields", {})
-            row = []
-            for f in fields:
-                val = row_data.get(f, "")
-                if isinstance(val, list):
-                    val = " ".join(
-                        v.get("text", str(v)) if isinstance(v, dict) else str(v)
-                        for v in val
-                    )
-                row.append(str(val).replace("|", "｜").replace("\n", " "))
-            lines.append("| " + " | ".join(row) + " |")
-
+        lines.extend(_render_bitable_table(fields, records))
         lines.append("")
 
     return "\n".join(lines)
@@ -488,7 +494,6 @@ def get_default_chrome_profile() -> str:
     elif system == "Linux":
         return str(Path.home() / ".config/google-chrome/Default")
     elif system == "Windows":
-        import os
         return str(Path(os.environ.get("LOCALAPPDATA", "")) / "Google/Chrome/User Data/Default")
     return str(Path.home() / ".config/google-chrome/Default")
 
@@ -508,8 +513,6 @@ def collect_messages_browser(
             "⚠️  未安装 Playwright，无法采集消息记录。\n"
             "请运行：pip3 install playwright && playwright install chromium\n"
         )
-
-    import re
 
     profile = chrome_profile or get_default_chrome_profile()
     print(f"  启动浏览器抓取钉钉消息（{'无头' if headless else '有界面'}）...", file=sys.stderr)

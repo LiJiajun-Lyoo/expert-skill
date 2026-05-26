@@ -42,6 +42,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 import time
 import argparse
@@ -176,6 +177,24 @@ def api_post(path: str, body: dict, config: dict, use_user_token: bool = False) 
         timeout=15,
     )
     return resp.json()
+
+
+def _parse_message_content(content_raw: str) -> str:
+    """Parse Feishu message body from raw JSON string to plain text."""
+    try:
+        content_obj = json.loads(content_raw)
+        if isinstance(content_obj, dict):
+            if "text" in content_obj:
+                return content_obj["text"]
+            text_parts = []
+            for line in content_obj.get("content", []):
+                for seg in line:
+                    if seg.get("tag") in ("text", "a"):
+                        text_parts.append(seg.get("text", ""))
+            return " ".join(text_parts)
+        return str(content_obj)
+    except Exception:
+        return content_raw
 
 
 def exchange_code_for_token(code: str, config: dict) -> dict:
@@ -446,24 +465,8 @@ def fetch_messages_from_chat(
             if sender_id != user_open_id:
                 continue
 
-            # 解析消息内容
             content_raw = item.get("body", {}).get("content", "")
-            try:
-                content_obj = json.loads(content_raw)
-                # 富文本消息
-                if isinstance(content_obj, dict):
-                    text_parts = []
-                    for line in content_obj.get("content", []):
-                        for seg in line:
-                            if seg.get("tag") in ("text", "a"):
-                                text_parts.append(seg.get("text", ""))
-                    content = " ".join(text_parts)
-                else:
-                    content = str(content_obj)
-            except Exception:
-                content = content_raw
-
-            content = content.strip()
+            content = _parse_message_content(content_raw).strip()
             if not content or content in ("[图片]", "[文件]", "[表情]", "[语音]"):
                 continue
 
@@ -516,28 +519,8 @@ def fetch_p2p_messages(
             sender = item.get("sender", {})
             sender_id = sender.get("id") or sender.get("open_id", "")
 
-            # 解析消息内容
             content_raw = item.get("body", {}).get("content", "")
-            try:
-                content_obj = json.loads(content_raw)
-                if isinstance(content_obj, dict):
-                    # 纯文本消息
-                    if "text" in content_obj:
-                        content = content_obj["text"]
-                    else:
-                        # 富文本消息
-                        text_parts = []
-                        for line in content_obj.get("content", []):
-                            for seg in line:
-                                if seg.get("tag") in ("text", "a"):
-                                    text_parts.append(seg.get("text", ""))
-                        content = " ".join(text_parts)
-                else:
-                    content = str(content_obj)
-            except Exception:
-                content = content_raw
-
-            content = content.strip()
+            content = _parse_message_content(content_raw).strip()
             if not content or content in ("[图片]", "[文件]", "[表情]", "[语音]"):
                 continue
 
@@ -725,7 +708,6 @@ def fetch_doc_content(doc_token: str, doc_type: str, config: dict) -> str:
 
 def collect_docs(user: dict, doc_limit: int, config: dict) -> str:
     """采集目标用户的文档"""
-    import re
     user_open_id = user.get("open_id") or user.get("user_id", "")
     name = user.get("name", "")
 
@@ -773,6 +755,27 @@ def collect_docs(user: dict, doc_limit: int, config: dict) -> str:
 
 # ─── 多维表格 ─────────────────────────────────────────────────────────────────
 
+def _render_bitable_table(fields: list, records: list) -> list[str]:
+    """Render bitable fields + records as markdown table rows."""
+    lines = [
+        "| " + " | ".join(fields) + " |",
+        "| " + " | ".join(["---"] * len(fields)) + " |",
+    ]
+    for rec in records:
+        row_data = rec.get("fields", {})
+        row = []
+        for f in fields:
+            val = row_data.get(f, "")
+            if isinstance(val, list):
+                val = " ".join(
+                    v.get("text", str(v)) if isinstance(v, dict) else str(v)
+                    for v in val
+                )
+            row.append(str(val).replace("|", "｜").replace("\n", " "))
+        lines.append("| " + " | ".join(row) + " |")
+    return lines
+
+
 def collect_bitable(app_token: str, config: dict) -> str:
     """拉取多维表格内容"""
     # 获取所有 table
@@ -805,22 +808,7 @@ def collect_bitable(app_token: str, config: dict) -> str:
 
         lines.append(f"### 表：{table_name}")
         lines.append("")
-        lines.append("| " + " | ".join(fields) + " |")
-        lines.append("| " + " | ".join(["---"] * len(fields)) + " |")
-
-        for rec in records:
-            row_data = rec.get("fields", {})
-            row = []
-            for f in fields:
-                val = row_data.get(f, "")
-                if isinstance(val, list):
-                    val = " ".join(
-                        v.get("text", str(v)) if isinstance(v, dict) else str(v)
-                        for v in val
-                    )
-                row.append(str(val).replace("|", "｜").replace("\n", " "))
-            lines.append("| " + " | ".join(row) + " |")
-
+        lines.extend(_render_bitable_table(fields, records))
         lines.append("")
 
     return "\n".join(lines)
