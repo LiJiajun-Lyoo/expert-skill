@@ -49,6 +49,8 @@ P5 访谈记录阶段则是本地交互式工具，不需要模型参与。
 
 项目内置工程与医疗两组专长类型。工程类型用于技术组织里的诊断、架构、审核、决策和运维；医疗类型用于慢病管理、照护运营和医疗安全审核。
 
+内置类型现在只是加速器，不再是创建专家的前置条件。创建流程可以先生成 `discovery/expert_blueprint.json`，根据材料判断是否匹配已有类型；匹配度不足时会使用 `custom` 通用专家蓝图继续生成。
+
 | 类型 | 标识 | 知识形态 | 适用场景 |
 |------|------|----------|----------|
 | 诊断专家 | `troubleshooter` | 决策树 | 故障排查、性能诊断 |
@@ -59,6 +61,7 @@ P5 访谈记录阶段则是本地交互式工具，不需要模型参与。
 | 临床照护管理专家 | `clinical_care_manager` | 临床照护框架 | 慢病指标判断、风险分层、干预路径、升级医生规则 |
 | 照护运营专家 | `care_operation_specialist` | 照护运营 Runbook | 随访 SOP、饮食运动干预、患者教育、依从性管理 |
 | 医疗安全审核专家 | `medical_safety_reviewer` | 医疗安全清单 | 红旗症状、用药风险、禁忌建议、转诊/急诊边界 |
+| 通用蓝图专家 | `custom` | 蓝图驱动 | 未知领域、低匹配度类型、跨领域专家 |
 
 ## 输出产物
 
@@ -74,6 +77,7 @@ P5 访谈记录阶段则是本地交互式工具，不需要模型参与。
 ### Discovery 模式额外增加
 
 - `discovery/expert_profile.json`：P2 专家画像
+- `discovery/expert_blueprint.json`：P2.5 专家能力蓝图，用于推断知识形态、类型匹配和 custom/generic 生成策略
 - `discovery/latent_variables.json`：P3 隐性变量候选
 - `discovery/triplet_groups.json`：P4 三联体问题
 - `discovery/interview_script.md`：P4 访谈脚本草稿
@@ -290,11 +294,48 @@ python tools/pre_researcher.py \
 - `discovery/expert_profile.json`
 - `meta.discovery.status = profile_ready`
 
+### P2.5：专家能力蓝图
+
+作用：
+
+- 从 P2 专家画像和原始描述中推断专家的知识形态
+- 判断是否高置信匹配内置类型
+- 低匹配度或未知领域自动走 `custom` / `generic` 生成策略
+
+#### 1. 生成 prompt
+
+```bash
+python tools/blueprint_builder.py \
+  --slug demo-expert \
+  --base-dir ./skills/expert \
+  --user-description "擅长高压线上故障止血与容量判断"
+```
+
+会生成：
+
+```text
+skills/expert/demo-expert/discovery/expert_blueprint_prompt.md
+```
+
+#### 2. 保存模型输出并解析
+
+```bash
+python tools/blueprint_builder.py \
+  --slug demo-expert \
+  --base-dir ./skills/expert \
+  --parse-output ./tmp/expert_blueprint_output.json
+```
+
+成功后会得到：
+
+- `discovery/expert_blueprint.json`
+- `meta.discovery.status = blueprint_ready`
+
 ### P3：隐性变量候选
 
 作用：
 
-- 把 P2 的“缺口”改写成“可测试的假设”
+- 把 P2 的“缺口”和 P2.5 的蓝图目标改写成“可测试的假设”
 
 #### 1. 生成 prompt
 
@@ -482,6 +523,7 @@ python tools/skill_writer.py \
   --base-dir ./skills/expert \
   --latent-report ./skills/expert/demo-expert/discovery/latent_report.md \
   --interview-transcript ./skills/expert/demo-expert/discovery/interview_transcript.md \
+  --blueprint ./skills/expert/demo-expert/discovery/expert_blueprint.json \
   --discovery-meta ./skills/expert/demo-expert/discovery/interview_analysis.json
 ```
 
@@ -501,6 +543,9 @@ python tools/skill_writer.py \
 ```bash
 python tools/pre_researcher.py ...
 python tools/pre_researcher.py ... --parse-output ./tmp/p2.json
+
+python tools/blueprint_builder.py ...
+python tools/blueprint_builder.py ... --parse-output ./tmp/p25.json
 
 python tools/latent_variable_builder.py ...
 python tools/latent_variable_builder.py ... --parse-output ./tmp/p3.json
@@ -524,7 +569,8 @@ python tools/skill_writer.py --action update ...
 | status | 含义 | 从哪一步继续 |
 |--------|------|--------------|
 | `not_started` | 尚未开始 | P2 |
-| `profile_ready` | P2 完成 | P3 |
+| `profile_ready` | P2 完成 | P2.5 |
+| `blueprint_ready` | P2.5 完成 | P3 |
 | `variables_ready` | P3 完成 | P4 |
 | `triplets_ready` | P4 完成 | P5 |
 | `interview_in_progress` | P5 进行中 | `interview_session.py --resume` |

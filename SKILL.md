@@ -47,6 +47,8 @@ allowed-tools: Read, Write, Edit, Bash
 
 企业专家的专业能力分为工程与医疗两组类型。医疗类型是独立的一等类型，不映射为工程类型。
 
+用户不需要提前选择或导入专家模板。先收集专家描述和材料，再生成专家能力蓝图；如果蓝图与内置类型高度匹配，则复用对应类型；否则使用 `custom` 通用专家结构。
+
 | 类型 | 标识 | 知识形态 | 典型产出 |
 |------|------|---------|---------|
 | 诊断专家 | `troubleshooter` | 决策树 | 故障模式库、诊断路径、嗅觉检查项 |
@@ -57,6 +59,7 @@ allowed-tools: Read, Write, Edit, Bash
 | 临床照护管理专家 | `clinical_care_manager` | 临床照护框架 | 关键指标、风险分层、干预路径、升级医生规则 |
 | 照护运营专家 | `care_operation_specialist` | 照护运营 Runbook | 随访 SOP、患者教育、依从性管理、任务升级 |
 | 医疗安全审核专家 | `medical_safety_reviewer` | 医疗安全清单 | 红旗症状、用药风险、禁忌建议、转诊/急诊边界 |
+| 通用蓝图专家 | `custom` | 蓝图驱动 | 未知领域、低匹配度类型、跨领域专家 |
 
 ---
 
@@ -82,7 +85,7 @@ allowed-tools: Read, Write, Edit, Bash
 
 1. **专家称呼**（必填）
 2. **基本信息**：公司、职级、职位、专业领域（一句话，可跳过）
-3. **专长类型**：从内置工程/医疗类型中选择（可跳过，默认"诊断专家"）
+3. **专长类型**：可跳过；后续专家能力蓝图会推断内置类型或回退到 `custom`
 4. **专业描述**：他擅长什么、判断框架是什么、什么时候别人会想到他（2-3 句话，可选但推荐）
 
 收集完后汇总确认。
@@ -302,9 +305,30 @@ python3 tools/pre_researcher.py \
 
 注意：`pre_researcher.py` 当前没有 `--materials-dir` 参数；如需导入原材料，必须用 `--materials` 显式传入一个或多个文件路径。
 
+### P2.5：专家能力蓝图
+
+基于专家画像和用户描述，推断专家知识形态、内置类型匹配度和生成策略：
+
+```bash
+python3 tools/blueprint_builder.py \
+  --slug {slug} \
+  --base-dir ./skills/expert \
+  --user-description "{description}"
+```
+
+AI 分析完成后，保存输出到文件，解析并写入：
+```bash
+python3 tools/blueprint_builder.py \
+  --slug {slug} \
+  --base-dir ./skills/expert \
+  --parse-output /tmp/{slug}_expert_blueprint.json
+```
+
+成功后会得到 `discovery/expert_blueprint.json`，并把 `meta.discovery.status` 更新为 `blueprint_ready`。如果匹配度不足，后续 P7 会使用 `custom` 通用专家蓝图生成。
+
 ### P3：隐性变量候选
 
-基于专家画像，推断可能存在的隐性变量候选：
+基于专家画像和专家能力蓝图，推断可能存在的隐性变量候选：
 
 ```bash
 python3 tools/latent_variable_builder.py \
@@ -390,6 +414,7 @@ python3 tools/skill_writer.py \
   --base-dir ./skills/expert \
   --latent-report ./skills/expert/{slug}/discovery/latent_report.md \
   --interview-transcript ./skills/expert/{slug}/discovery/interview_transcript.md \
+  --blueprint ./skills/expert/{slug}/discovery/expert_blueprint.json \
   --discovery-meta ./skills/expert/{slug}/discovery/interview_analysis.json
 ```
 
@@ -414,7 +439,8 @@ python3 tools/skill_writer.py \
 | discovery.status | 含义 | 重新启动点 |
 |-----------------|------|---------|
 | `not_started` | 尚未开始 | 从 P2 开始 |
-| `profile_ready` | P2 完成 | 从 P3 开始 |
+| `profile_ready` | P2 完成 | 从 P2.5 开始 |
+| `blueprint_ready` | P2.5 完成 | 从 P3 开始 |
 | `variables_ready` | P3 完成 | 从 P4 开始 |
 | `triplets_ready` | P4 完成 | 从 P5 开始 |
 | `interview_in_progress` | P5 进行中 | `--resume` 从中断点继续 |
