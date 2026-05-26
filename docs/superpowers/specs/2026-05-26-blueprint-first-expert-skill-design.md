@@ -2,7 +2,7 @@
 
 Date: 2026-05-26
 Status: approved-for-spec-review
-Branch: blueprint-first-expert-skill-design
+Branch: blueprint-first-expert-skill
 
 ## Problem
 
@@ -231,12 +231,10 @@ UV_CACHE_DIR=/tmp/uv-cache UV_TOOL_DIR=/tmp/uv-tools uvx pytest -q
 
 ## Branching Plan
 
-This design spec lives on `blueprint-first-expert-skill-design`.
-
-After spec review approval, create a separate implementation branch or worktree from this reviewed design branch, for example:
+This spec lives on the unified feature branch:
 
 ```text
-blueprint-first-expert-skill-impl
+blueprint-first-expert-skill
 ```
 
-The implementation branch should contain the planning document and code changes. The design branch should remain a reviewable record of the agreed design.
+The same branch should contain the design document, planning document, and implementation changes. After spec review approval, add the planning document and code changes in this same worktree. Keep the phases reviewable through separate commits rather than separate branches.
