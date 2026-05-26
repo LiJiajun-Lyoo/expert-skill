@@ -29,7 +29,6 @@ from __future__ import annotations
 import json
 import os
 import platform
-import re
 import sys
 import time
 import argparse
@@ -368,7 +367,6 @@ def collect_docs(user: dict, doc_limit: int, config: dict) -> str:
 # ─── 多维表格 ─────────────────────────────────────────────────────────────────
 
 def _render_bitable_table(fields: list, records: list) -> list[str]:
-    """Render bitable fields + records as markdown table rows."""
     lines: list[str] = []
     if fields:
         lines.append("| " + " | ".join(fields) + " |")

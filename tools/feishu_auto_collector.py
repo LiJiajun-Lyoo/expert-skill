@@ -180,7 +180,6 @@ def api_post(path: str, body: dict, config: dict, use_user_token: bool = False) 
 
 
 def _parse_message_content(content_raw: str) -> str:
-    """Parse Feishu message body from raw JSON string to plain text."""
     try:
         content_obj = json.loads(content_raw)
         if isinstance(content_obj, dict):
@@ -756,7 +755,6 @@ def collect_docs(user: dict, doc_limit: int, config: dict) -> str:
 # ─── 多维表格 ─────────────────────────────────────────────────────────────────
 
 def _render_bitable_table(fields: list, records: list) -> list[str]:
-    """Render bitable fields + records as markdown table rows."""
     lines = [
         "| " + " | ".join(fields) + " |",
         "| " + " | ".join(["---"] * len(fields)) + " |",
