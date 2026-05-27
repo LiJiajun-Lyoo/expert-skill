@@ -16,6 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from discovery_schema import (
+    format_prompt,
     parse_json_or_yaml,
     read_expert_profile,
     resolve_blueprint_type_match,
@@ -43,20 +44,16 @@ def assemble_prompt(
     material_summary: str = "",
     expertise_types_json: str = "",
 ) -> str:
-    """Replace blueprint prompt placeholders with concrete values."""
     if not expertise_types_json:
         expertise_types_json = json.dumps(list_expertise_types(), ensure_ascii=False, indent=2)
-    replacements = {
-        "{name}": name or "（未填写）",
-        "{expert_profile_json}": expert_profile_json or "（未提供）",
-        "{user_description}": user_description or "（未填写）",
-        "{material_summary}": material_summary or "（未提供）",
-        "{expertise_types_json}": expertise_types_json,
-    }
-    result = template
-    for key, value in replacements.items():
-        result = result.replace(key, value)
-    return result
+    return format_prompt(
+        template,
+        name=name or "（未填写）",
+        expert_profile_json=expert_profile_json or "（未提供）",
+        user_description=user_description or "（未填写）",
+        material_summary=material_summary or "（未提供）",
+        expertise_types_json=expertise_types_json,
+    )
 
 
 def _parse_output_file(output_path: Path) -> dict:

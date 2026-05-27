@@ -28,8 +28,6 @@ DISCOVERY_STATUSES = (
 
 _VALID_SOURCE_TYPES = {"comparison_gap", "domain_disagreement", "silent_topic", "rule_boundary"}
 _VALID_TESTABILITY = {"high", "medium", "low"}
-_VALID_AWARENESS_STATES = {"explicit", "semi_latent", "deep_latent"}
-_VALID_CONFIDENCE = {"high", "medium", "low"}
 
 
 def build_expert_profile(
@@ -431,6 +429,13 @@ _YAML_IMPORT_ERROR_MSG = (
     "请安装 PyYAML（pip install pyyaml）以支持 YAML 输入，"
     "或将 AI 输出保存为 JSON 格式后重试。"
 )
+
+
+def format_prompt(template: str, **kwargs: str) -> str:
+    """Replace {key} placeholders in template with corresponding kwargs values."""
+    for key, value in kwargs.items():
+        template = template.replace(f"{{{key}}}", value)
+    return template
 
 
 def parse_json_or_yaml(path: Path, root_key: str | None = None):

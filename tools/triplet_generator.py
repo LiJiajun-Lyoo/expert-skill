@@ -17,6 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from discovery_schema import (
+    format_prompt,
     parse_json_or_yaml,
     read_expert_blueprint,
     read_expert_profile,
@@ -69,22 +70,18 @@ def assemble_prompt(
     expert_blueprint_json: str = "（未提供）",
     decision_scenarios_json: str = "[]",
 ) -> str:
-    """Replace all {variable} placeholders in the template."""
-    replacements = {
-        "{name}": name,
-        "{expertise_type}": expertise_type,
-        "{domain}": domain,
-        "{target_variables_json}": target_variables_json,
-        "{expert_profile_json}": expert_profile_json,
-        "{domain_context_json}": domain_context_json,
-        "{known_decisions_json}": known_decisions_json,
-        "{expert_blueprint_json}": expert_blueprint_json,
-        "{decision_scenarios_json}": decision_scenarios_json,
-    }
-    result = template
-    for key, value in replacements.items():
-        result = result.replace(key, value)
-    return result
+    return format_prompt(
+        template,
+        name=name,
+        expertise_type=expertise_type,
+        domain=domain,
+        target_variables_json=target_variables_json,
+        expert_profile_json=expert_profile_json,
+        domain_context_json=domain_context_json,
+        known_decisions_json=known_decisions_json,
+        expert_blueprint_json=expert_blueprint_json,
+        decision_scenarios_json=decision_scenarios_json,
+    )
 
 
 # ---------------------------------------------------------------------------

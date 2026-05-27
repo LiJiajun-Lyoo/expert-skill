@@ -15,7 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from discovery_schema import build_expert_profile, parse_json_or_yaml, validate_expert_profile
+from discovery_schema import build_expert_profile, format_prompt, parse_json_or_yaml, validate_expert_profile
 
 PROMPT_TEMPLATE_PATH = Path(__file__).parent.parent / "prompts" / "discovery" / "pre_research.md"
 
@@ -91,22 +91,18 @@ def assemble_prompt(
     expertise_description: str = "",
     domain_background: str = "",
 ) -> str:
-    """Replace all {variable} placeholders in the template with actual values."""
-    replacements = {
-        "{name}": name,
-        "{title}": title or "（未填写）",
-        "{domain}": domain or "（未填写）",
-        "{years}": years or "（未填写）",
-        "{expertise_type}": expertise_type,
-        "{materials}": materials_text or "（未提供）",
-        "{open_research}": open_research or "（未提供）",
-        "{expertise_description}": expertise_description or "（未填写）",
-        "{domain_background}": domain_background or "（未填写）",
-    }
-    result = template
-    for key, value in replacements.items():
-        result = result.replace(key, value)
-    return result
+    return format_prompt(
+        template,
+        name=name,
+        title=title or "（未填写）",
+        domain=domain or "（未填写）",
+        years=years or "（未填写）",
+        expertise_type=expertise_type,
+        materials=materials_text or "（未提供）",
+        open_research=open_research or "（未提供）",
+        expertise_description=expertise_description or "（未填写）",
+        domain_background=domain_background or "（未填写）",
+    )
 
 
 def check_p2_quality_gate(profile: dict) -> list[str]:
