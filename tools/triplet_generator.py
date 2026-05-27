@@ -17,7 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from discovery_schema import (
-    _YAML_IMPORT_ERROR_MSG,
+    parse_json_or_yaml,
     read_expert_blueprint,
     read_expert_profile,
     resolve_expertise_type,
@@ -271,31 +271,6 @@ def generate_interview_script(groups: list[dict], variables: list[dict]) -> str:
 # Output parsing
 # ---------------------------------------------------------------------------
 
-def _parse_output_file(output_path: Path) -> list[dict]:
-    text = output_path.read_text(encoding="utf-8")
-    try:
-        data = json.loads(text)
-        if isinstance(data, list):
-            return data
-        if isinstance(data, dict):
-            return data.get("triplet_groups", data)
-        return data
-    except json.JSONDecodeError:
-        pass
-    try:
-        import yaml  # type: ignore
-        data = yaml.safe_load(text)
-        if isinstance(data, list):
-            return data
-        if isinstance(data, dict):
-            return data.get("triplet_groups", data)
-        raise ValueError(f"Unexpected YAML type: {type(data)}")
-    except ImportError:
-        print(_YAML_IMPORT_ERROR_MSG, file=sys.stderr)
-        sys.exit(1)
-    except Exception as exc:
-        print(f"错误：无法解析输出文件（{exc}）", file=sys.stderr)
-        sys.exit(1)
 
 
 # ---------------------------------------------------------------------------
@@ -405,7 +380,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"错误：输出文件不存在：{output_path}", file=sys.stderr)
         return 1
 
-    groups = _parse_output_file(output_path)
+    groups = parse_json_or_yaml(output_path, "triplet_groups")
     if not isinstance(groups, list):
         print(f"错误：解析结果不是列表，得到 {type(groups)}", file=sys.stderr)
         return 1

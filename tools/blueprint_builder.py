@@ -16,7 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from discovery_schema import (
-    _YAML_IMPORT_ERROR_MSG,
+    parse_json_or_yaml,
     read_expert_profile,
     resolve_blueprint_type_match,
     validate_expert_blueprint,
@@ -59,36 +59,15 @@ def assemble_prompt(
     return result
 
 
-def _unwrap_blueprint(data: object) -> dict:
-    if isinstance(data, dict):
-        blueprint = data.get("expert_blueprint", data)
-        if isinstance(blueprint, dict):
-            return blueprint
-    raise ValueError(f"输出必须是 JSON/YAML object 或包含 expert_blueprint 的 object，实际为 {type(data)}")
-
-
 def _parse_output_file(output_path: Path) -> dict:
-    """Parse a model output file as JSON first, then YAML if available."""
-    text = output_path.read_text(encoding="utf-8")
-
-    try:
-        return _unwrap_blueprint(json.loads(text))
-    except json.JSONDecodeError:
-        pass
-    except ValueError as exc:
-        print(f"错误：无法解析输出文件（{exc}）", file=sys.stderr)
+    data = parse_json_or_yaml(output_path, "expert_blueprint")
+    if not isinstance(data, dict):
+        print(
+            f"错误：无法解析输出文件（输出必须是 JSON/YAML object 或包含 expert_blueprint 的 object，实际为 {type(data).__name__}）",
+            file=sys.stderr,
+        )
         sys.exit(1)
-
-    try:
-        import yaml  # type: ignore
-
-        return _unwrap_blueprint(yaml.safe_load(text))
-    except ImportError:
-        print(_YAML_IMPORT_ERROR_MSG, file=sys.stderr)
-        sys.exit(1)
-    except Exception as exc:
-        print(f"错误：无法解析输出文件（{exc}）", file=sys.stderr)
-        sys.exit(1)
+    return data
 
 
 def _resolve_and_apply_type_match(blueprint: dict) -> dict:

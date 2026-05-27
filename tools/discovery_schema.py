@@ -9,6 +9,7 @@ expert profiles, latent variable candidates, triplet question groups, and analys
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 
@@ -430,6 +431,30 @@ _YAML_IMPORT_ERROR_MSG = (
     "请安装 PyYAML（pip install pyyaml）以支持 YAML 输入，"
     "或将 AI 输出保存为 JSON 格式后重试。"
 )
+
+
+def parse_json_or_yaml(path: Path, root_key: str | None = None):
+    """Read path as JSON or YAML; if root_key given and result is a dict, unwrap that key."""
+    text = path.read_text(encoding="utf-8")
+
+    def _unwrap(data):
+        if root_key is not None and isinstance(data, dict):
+            return data.get(root_key, data)
+        return data
+
+    try:
+        return _unwrap(json.loads(text))
+    except json.JSONDecodeError:
+        pass
+    try:
+        import yaml  # type: ignore
+        return _unwrap(yaml.safe_load(text))
+    except ImportError:
+        print(_YAML_IMPORT_ERROR_MSG, file=sys.stderr)
+        sys.exit(1)
+    except Exception as exc:
+        print(f"错误：无法解析输出文件（{exc}）", file=sys.stderr)
+        sys.exit(1)
 
 
 def read_expert_profile(base_dir: str, slug: str) -> dict:

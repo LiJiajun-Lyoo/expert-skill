@@ -16,8 +16,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from discovery_schema import (
-    _YAML_IMPORT_ERROR_MSG,
     build_latent_variable,
+    parse_json_or_yaml,
     read_expert_blueprint,
     read_expert_profile,
     resolve_expertise_type,
@@ -80,36 +80,6 @@ def sort_candidates(variables: list[dict]) -> list[dict]:
     )
 
 
-def _parse_output_file(output_path: Path) -> list[dict]:
-    """Parse an AI output file (JSON or YAML) and return the variables list."""
-    text = output_path.read_text(encoding="utf-8")
-
-    # Try JSON first
-    try:
-        data = json.loads(text)
-        if isinstance(data, list):
-            return data
-        if isinstance(data, dict):
-            return data.get("latent_variables", data)
-        return data
-    except json.JSONDecodeError:
-        pass
-
-    # Try YAML (optional)
-    try:
-        import yaml  # type: ignore
-        data = yaml.safe_load(text)
-        if isinstance(data, list):
-            return data
-        if isinstance(data, dict):
-            return data.get("latent_variables", data)
-        raise ValueError(f"Unexpected YAML type: {type(data)}")
-    except ImportError:
-        print(_YAML_IMPORT_ERROR_MSG, file=sys.stderr)
-        sys.exit(1)
-    except Exception as exc:
-        print(f"错误：无法解析输出文件（{exc}）", file=sys.stderr)
-        sys.exit(1)
 
 
 def _update_meta_json(meta_path: Path, variable_count: int) -> None:
@@ -204,7 +174,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"错误：输出文件不存在：{output_path}", file=sys.stderr)
             return 1
 
-        variables = _parse_output_file(output_path)
+        variables = parse_json_or_yaml(output_path, "latent_variables")
         if not isinstance(variables, list):
             print(f"错误：解析结果不是列表，得到 {type(variables)}", file=sys.stderr)
             return 1
