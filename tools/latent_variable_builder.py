@@ -16,7 +16,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from discovery_schema import (
+    _YAML_IMPORT_ERROR_MSG,
     build_latent_variable,
+    read_expert_blueprint,
+    read_expert_profile,
+    resolve_expertise_type,
     validate_latent_variable,
     validate_latent_variables_pool,
 )
@@ -24,47 +28,6 @@ from discovery_schema import (
 PROMPT_TEMPLATE_PATH = Path(__file__).parent.parent / "prompts" / "discovery" / "latent_variable.md"
 
 _TESTABILITY_RANK = {"high": 2, "medium": 1, "low": 0}
-
-
-def read_expert_profile(base_dir: str, slug: str) -> dict:
-    """Load expert_profile.json from the discovery directory."""
-    path = Path(base_dir) / slug / "discovery" / "expert_profile.json"
-    if not path.exists():
-        raise FileNotFoundError(
-            f"expert_profile.json not found at {path}\n"
-            "Run pre_researcher.py --parse-output first (P2 must complete before P3)."
-        )
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def read_expert_blueprint(base_dir: str, slug: str) -> dict | None:
-    """Load optional expert_blueprint.json from the discovery directory."""
-    path = Path(base_dir) / slug / "discovery" / "expert_blueprint.json"
-    if not path.exists():
-        return None
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"expert_blueprint.json is invalid JSON at {path}: {exc}") from exc
-
-
-def resolve_expertise_type(args_type: str, base_dir: str, slug: str) -> str:
-    """Resolve expertise_type: CLI arg > meta.json > default 'troubleshooter'."""
-    if args_type:
-        return args_type
-    meta_path = Path(base_dir) / slug / "meta.json"
-    if meta_path.exists():
-        try:
-            meta = json.loads(meta_path.read_text(encoding="utf-8"))
-            if meta.get("expertise_type"):
-                return meta["expertise_type"]
-        except (json.JSONDecodeError, OSError):
-            pass
-    print(
-        "警告：未传 --expertise-type 且找不到 meta.json，默认使用 troubleshooter",
-        file=sys.stderr,
-    )
-    return "troubleshooter"
 
 
 def assemble_prompt(
@@ -142,12 +105,7 @@ def _parse_output_file(output_path: Path) -> list[dict]:
             return data.get("latent_variables", data)
         raise ValueError(f"Unexpected YAML type: {type(data)}")
     except ImportError:
-        print(
-            "错误：输入文件不是有效 JSON，且 PyYAML 未安装。\n"
-            "请安装 PyYAML（pip install pyyaml）以支持 YAML 输入，"
-            "或将 AI 输出保存为 JSON 格式后重试。",
-            file=sys.stderr,
-        )
+        print(_YAML_IMPORT_ERROR_MSG, file=sys.stderr)
         sys.exit(1)
     except Exception as exc:
         print(f"错误：无法解析输出文件（{exc}）", file=sys.stderr)
@@ -200,7 +158,12 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     # Resolve expertise_type
-    expertise_type = resolve_expertise_type(args.expertise_type, args.base_dir, args.slug)
+    expertise_type = resolve_expertise_type(args.base_dir, args.slug, args.expertise_type)
+    if not args.expertise_type and expertise_type == "troubleshooter":
+        print(
+            "警告：未传 --expertise-type 且找不到 meta.json，默认使用 troubleshooter",
+            file=sys.stderr,
+        )
 
     # Assemble prompt
     name = profile.get("identity", {}).get("name", args.slug)

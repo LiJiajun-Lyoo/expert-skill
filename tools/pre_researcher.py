@@ -15,7 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from discovery_schema import build_expert_profile, validate_expert_profile
+from discovery_schema import _YAML_IMPORT_ERROR_MSG, build_expert_profile, validate_expert_profile
 
 PROMPT_TEMPLATE_PATH = Path(__file__).parent.parent / "prompts" / "discovery" / "pre_research.md"
 
@@ -146,12 +146,7 @@ def _parse_output_file(output_path: Path) -> dict:
             return data.get("expert_profile", data)
         raise ValueError(f"YAML parsed to unexpected type: {type(data)}")
     except ImportError:
-        print(
-            "错误：输入文件不是有效 JSON，且 PyYAML 未安装。\n"
-            "请安装 PyYAML（pip install pyyaml）以支持 YAML 输入，"
-            "或将 AI 输出保存为 JSON 格式后重试。",
-            file=sys.stderr,
-        )
+        print(_YAML_IMPORT_ERROR_MSG, file=sys.stderr)
         sys.exit(1)
     except Exception as exc:
         print(f"错误：无法解析输出文件（{exc}）", file=sys.stderr)

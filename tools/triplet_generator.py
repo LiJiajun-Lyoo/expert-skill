@@ -16,11 +16,15 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from discovery_schema import validate_triplet_group
+from discovery_schema import (
+    _YAML_IMPORT_ERROR_MSG,
+    read_expert_blueprint,
+    read_expert_profile,
+    resolve_expertise_type,
+    validate_triplet_group,
+)
 
 PROMPT_TEMPLATE_PATH = Path(__file__).parent.parent / "prompts" / "discovery" / "triplet_builder.md"
-
-_TESTABILITY_RANK = {"high": 2, "medium": 1, "low": 0}
 
 
 # ---------------------------------------------------------------------------
@@ -37,24 +41,6 @@ def read_latent_variables(base_dir: str, slug: str) -> list[dict]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def read_expert_profile(base_dir: str, slug: str) -> dict:
-    path = Path(base_dir) / slug / "discovery" / "expert_profile.json"
-    if not path.exists():
-        raise FileNotFoundError(f"expert_profile.json not found at {path}")
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def read_expert_blueprint(base_dir: str, slug: str) -> dict | None:
-    """Load optional expert_blueprint.json from the discovery directory."""
-    path = Path(base_dir) / slug / "discovery" / "expert_blueprint.json"
-    if not path.exists():
-        return None
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"expert_blueprint.json is invalid JSON at {path}: {exc}") from exc
-
-
 def filter_target_variables(
     variables: list[dict],
     target_ids: list[str] | None = None,
@@ -65,18 +51,6 @@ def filter_target_variables(
         id_set = set(target_ids)
         filtered = [v for v in filtered if v.get("id") in id_set]
     return filtered
-
-
-def resolve_expertise_type(base_dir: str, slug: str) -> str:
-    meta_path = Path(base_dir) / slug / "meta.json"
-    if meta_path.exists():
-        try:
-            meta = json.loads(meta_path.read_text(encoding="utf-8"))
-            if meta.get("expertise_type"):
-                return meta["expertise_type"]
-        except (json.JSONDecodeError, OSError):
-            pass
-    return "troubleshooter"
 
 
 # ---------------------------------------------------------------------------
@@ -317,12 +291,7 @@ def _parse_output_file(output_path: Path) -> list[dict]:
             return data.get("triplet_groups", data)
         raise ValueError(f"Unexpected YAML type: {type(data)}")
     except ImportError:
-        print(
-            "错误：输入文件不是有效 JSON，且 PyYAML 未安装。\n"
-            "请安装 PyYAML（pip install pyyaml）以支持 YAML 输入，"
-            "或将 AI 输出保存为 JSON 格式后重试。",
-            file=sys.stderr,
-        )
+        print(_YAML_IMPORT_ERROR_MSG, file=sys.stderr)
         sys.exit(1)
     except Exception as exc:
         print(f"错误：无法解析输出文件（{exc}）", file=sys.stderr)

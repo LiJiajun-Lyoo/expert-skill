@@ -15,19 +15,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from discovery_schema import resolve_blueprint_type_match, validate_expert_blueprint
+from discovery_schema import (
+    _YAML_IMPORT_ERROR_MSG,
+    read_expert_profile,
+    resolve_blueprint_type_match,
+    validate_expert_blueprint,
+)
 from expertise_presets import list_expertise_types
 
 PROMPT_TEMPLATE_PATH = Path(__file__).parent.parent / "prompts" / "discovery" / "expert_blueprint.md"
 _BLUEPRINT_READY_PRIOR_STATUSES = {"", "not_started", "profile_ready"}
-
-
-def read_expert_profile(base_dir: str, slug: str) -> dict:
-    """Read the P2 expert profile for a skill slug."""
-    path = Path(base_dir) / slug / "discovery" / "expert_profile.json"
-    if not path.exists():
-        raise FileNotFoundError(f"找不到 {path}；请先完成 P2 生成 expert_profile.json")
-    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def read_optional_text(paths: list[Path]) -> str:
@@ -87,12 +84,7 @@ def _parse_output_file(output_path: Path) -> dict:
 
         return _unwrap_blueprint(yaml.safe_load(text))
     except ImportError:
-        print(
-            "错误：输入文件不是有效 JSON，且 PyYAML 未安装。\n"
-            "请安装 PyYAML（pip install pyyaml）以支持 YAML 输入，"
-            "或将 AI 输出保存为 JSON 格式后重试。",
-            file=sys.stderr,
-        )
+        print(_YAML_IMPORT_ERROR_MSG, file=sys.stderr)
         sys.exit(1)
     except Exception as exc:
         print(f"错误：无法解析输出文件（{exc}）", file=sys.stderr)
